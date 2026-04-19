@@ -44,7 +44,7 @@ export interface Tool {
   icon?: string
 }
 
-export type ToolCategory = 'email' | 'domain' | 'ip' | 'username' | 'phone' | 'metadata' | 'social'
+export type ToolCategory = 'email' | 'domain' | 'ip' | 'username' | 'phone' | 'metadata' | 'social' | 'security'
 
 export interface ToolInputField {
   name: string

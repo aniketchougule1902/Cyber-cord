@@ -1,17 +1,25 @@
 'use client'
 import { useState, useEffect } from 'react'
 import { toolsApi } from '@/lib/api'
+import { STATIC_TOOLS } from '@/lib/tools-data'
 import type { Tool, ToolResult } from '@/types'
 
 export function useTools() {
-  const [tools, setTools] = useState<Tool[]>([])
-  const [loading, setLoading] = useState(true)
+  const [tools, setTools] = useState<Tool[]>(STATIC_TOOLS)
+  const [loading, setLoading] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
     toolsApi.list()
-      .then(res => setTools(res.data.tools || res.data))
-      .catch(err => setError(err.message))
+      .then(res => {
+        const fetched: Tool[] = res.data.tools || res.data
+        if (Array.isArray(fetched) && fetched.length > 0) {
+          setTools(fetched)
+        }
+      })
+      .catch(() => {
+        // Static fallback already loaded; silently ignore backend unreachable
+      })
       .finally(() => setLoading(false))
   }, [])
 
