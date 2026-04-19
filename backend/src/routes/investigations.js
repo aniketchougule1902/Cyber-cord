@@ -66,7 +66,7 @@ router.get(
 
     let queryBuilder = supabase
       .from('investigations')
-      .select('*, findings_count:investigation_findings(count)', { count: 'exact' })
+      .select('*', { count: 'exact' })
       .eq('user_id', req.user.id)
       .order('created_at', { ascending: false })
       .range(offset, offset + limit - 1);
