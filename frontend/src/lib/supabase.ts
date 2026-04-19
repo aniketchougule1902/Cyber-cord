@@ -1,7 +1,26 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+function isValidHttpUrl(url: string | undefined): boolean {
+  try {
+    const parsed = new URL(url ?? '')
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!isValidHttpUrl(envUrl) && process.env.NODE_ENV !== 'production') {
+  console.warn(
+    '[supabase] NEXT_PUBLIC_SUPABASE_URL is not set or is not a valid URL. ' +
+    'Authentication will not work until real Supabase credentials are configured.'
+  )
+}
+
+const supabaseUrl = isValidHttpUrl(envUrl) ? envUrl! : 'https://placeholder.supabase.co'
+const supabaseAnonKey = envKey || 'placeholder-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
