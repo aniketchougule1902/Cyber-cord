@@ -1,8 +1,16 @@
 'use client'
 import { useEffect, useState, useCallback } from 'react'
-import { supabase } from '@/lib/supabase'
+import { supabase, supabaseConfigured } from '@/lib/supabase'
 import type { User as SupabaseUser, Session } from '@supabase/supabase-js'
 import type { User } from '@/types'
+
+const CONFIG_ERROR = {
+  name: 'AuthConfigError',
+  message:
+    'Authentication is not configured. Please set NEXT_PUBLIC_SUPABASE_URL and ' +
+    'NEXT_PUBLIC_SUPABASE_ANON_KEY in your environment variables.',
+  status: 0,
+} as const
 
 interface AuthState {
   user: SupabaseUser | null
@@ -45,6 +53,10 @@ export function useAuth() {
   }, [fetchProfile])
 
   const signIn = async (email: string, password: string) => {
+    if (!supabaseConfigured) {
+      setState(s => ({ ...s, loading: false, error: CONFIG_ERROR.message }))
+      return { error: CONFIG_ERROR }
+    }
     setState(s => ({ ...s, loading: true, error: null }))
     const { error } = await supabase.auth.signInWithPassword({ email, password })
     if (error) setState(s => ({ ...s, loading: false, error: error.message }))
@@ -52,6 +64,10 @@ export function useAuth() {
   }
 
   const signUp = async (email: string, password: string, displayName?: string) => {
+    if (!supabaseConfigured) {
+      setState(s => ({ ...s, loading: false, error: CONFIG_ERROR.message }))
+      return { error: CONFIG_ERROR }
+    }
     setState(s => ({ ...s, loading: true, error: null }))
     const { error } = await supabase.auth.signUp({
       email,
