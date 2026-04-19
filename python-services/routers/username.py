@@ -61,7 +61,7 @@ BROWSER_HEADERS = {
 
 # Platforms that return 200 even for missing profiles need content-based detection
 FALSE_POSITIVE_MARKERS: dict[str, str] = {
-    "Bandcamp": "Sorry, that something wasn",
+    "Bandcamp": "Sorry, that something wasn't found",
     "Hacker News": "No such user.",
     "Steam": "The specified profile could not be found",
 }

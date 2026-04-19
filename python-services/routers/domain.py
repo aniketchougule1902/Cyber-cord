@@ -139,6 +139,7 @@ async def ssl_cert(request: Request, body: SslCertRequest) -> ToolResponse:
 
     def _fetch_cert() -> dict:
         ctx = ssl.create_default_context()
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         conn = ctx.wrap_socket(
             socket.create_connection((domain, port), timeout=10),
             server_hostname=domain,
@@ -151,6 +152,7 @@ async def ssl_cert(request: Request, body: SslCertRequest) -> ToolResponse:
 
     def _fetch_cert_no_verify() -> dict:
         ctx = ssl.create_default_context()
+        ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         conn = ctx.wrap_socket(

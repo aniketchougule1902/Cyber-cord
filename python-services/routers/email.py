@@ -117,7 +117,7 @@ async def verify_email(request: Request, body: EmailVerifyRequest) -> ToolRespon
 
     has_mx = False
     mx_records: list[str] = []
-    is_valid_format = bool(re.match(r"^[^@\s]+@[^@\s]+\.[^@\s]+$", email))
+    is_valid_format = "@" in email and "." in email.split("@", 1)[1]
     error_detail: str | None = None
 
     try:
