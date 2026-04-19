@@ -68,13 +68,10 @@ cd Cyber-cord
 
 ### 2. Set up environment variables
 
-Copy `.env.example` in each service directory and fill in real values:
+Copy the root `.env.example` to `.env` and fill in the real values:
 
 ```bash
-cp backend/.env.example backend/.env
-cp python-services/.env.example python-services/.env
-cp ai-engine/.env.example ai-engine/.env
-cp frontend/.env.example frontend/.env.local
+cp .env.example .env
 ```
 
 ### 3. Set up Supabase database
@@ -85,7 +82,7 @@ cp frontend/.env.example frontend/.env.local
 ### 4. Run with Docker Compose
 
 ```bash
-# Create a root .env with all required vars (see Environment Variables section)
+# Copy .env.example to .env and fill in all required vars (see Environment Variables section)
 docker-compose up --build
 ```
 
@@ -109,7 +106,9 @@ cd ai-engine && npm install && node src/index.js
 
 ## Environment Variables
 
-### Backend (`backend/.env`)
+All environment variables live in a single `.env` file at the project root (copy from `.env.example`).
+
+### Backend (`PORT`, `NODE_ENV`, Supabase, JWT, …)
 
 | Variable | Description | Required |
 |---|---|---|
@@ -121,7 +120,7 @@ cd ai-engine && npm install && node src/index.js
 | `AI_ENGINE_URL` | URL for AI engine | ✅ |
 | `CORS_ORIGIN` | Allowed CORS origin | ✅ |
 
-### Python Services (`python-services/.env`)
+### Python Services (`HIBP_API_KEY`, `ABUSEIPDB_API_KEY`, …)
 
 | Variable | Description | Required |
 |---|---|---|
@@ -129,7 +128,7 @@ cd ai-engine && npm install && node src/index.js
 | `ABUSEIPDB_API_KEY` | AbuseIPDB API key | Optional |
 | `ALLOWED_ORIGINS` | Comma-separated allowed origins | ✅ |
 
-### AI Engine (`ai-engine/.env`)
+### AI Engine (`OPENAI_API_KEY`, `OPENAI_MODEL`, …)
 
 | Variable | Description | Required |
 |---|---|---|
@@ -138,7 +137,7 @@ cd ai-engine && npm install && node src/index.js
 | `OPENAI_MODEL` | Model name | ✅ |
 | `BACKEND_API_KEY` | Internal API key for auth | ✅ |
 
-### Frontend (`frontend/.env.local`)
+### Frontend (`NEXT_PUBLIC_*` variables)
 
 | Variable | Description | Required |
 |---|---|---|
