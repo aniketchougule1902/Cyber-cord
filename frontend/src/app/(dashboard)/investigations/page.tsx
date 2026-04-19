@@ -4,7 +4,7 @@ import { useState } from 'react'
 import { useInvestigations } from '@/hooks/useInvestigations'
 import { formatDistanceToNow } from 'date-fns'
 import * as Dialog from '@radix-ui/react-dialog'
-import { Plus, X } from 'lucide-react'
+import { Plus, X, Search, Tag, Clock, FileText, AlertCircle } from 'lucide-react'
 import type { Investigation } from '@/types'
 
 const STATUS_STYLES: Record<Investigation['status'], string> = {
@@ -45,12 +45,12 @@ export default function InvestigationsPage() {
   }
 
   return (
-    <div className="space-y-6 max-w-5xl">
+    <div className="space-y-5 max-w-5xl">
       <div className="flex items-center justify-between">
         <div>
-          <h1 className="text-2xl font-bold text-white">Investigations</h1>
-          <p className="text-slate-400 text-sm mt-1">
-            {loading ? 'Loading…' : `${total} investigation${total !== 1 ? 's' : ''} total`}
+          <h1 className="text-xl md:text-2xl font-bold text-white">Investigations</h1>
+          <p className="text-slate-400 text-sm mt-0.5">
+            {loading ? 'Loading…' : `${total} investigation${total !== 1 ? 's' : ''}`}
           </p>
         </div>
 
@@ -58,26 +58,28 @@ export default function InvestigationsPage() {
           <Dialog.Trigger asChild>
             <button className="cyber-button-primary flex items-center gap-2">
               <Plus className="h-4 w-4" />
-              New Investigation
+              <span className="hidden sm:inline">New Investigation</span>
+              <span className="sm:hidden">New</span>
             </button>
           </Dialog.Trigger>
 
           <Dialog.Portal>
             <Dialog.Overlay className="fixed inset-0 bg-black/70 backdrop-blur-sm z-40" />
-            <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-full max-w-md bg-slate-900 border border-slate-700 rounded-xl p-6 shadow-2xl">
+            <Dialog.Content className="fixed left-1/2 top-1/2 -translate-x-1/2 -translate-y-1/2 z-50 w-[calc(100vw-2rem)] max-w-md bg-slate-900 border border-slate-700 rounded-2xl p-5 md:p-6 shadow-2xl">
               <div className="flex items-center justify-between mb-5">
                 <Dialog.Title className="text-lg font-semibold text-white">
                   New Investigation
                 </Dialog.Title>
                 <Dialog.Close asChild>
-                  <button className="text-slate-500 hover:text-slate-300 transition-colors">
+                  <button className="text-slate-500 hover:text-slate-300 transition-colors p-1">
                     <X className="h-5 w-5" />
                   </button>
                 </Dialog.Close>
               </div>
 
               {formError && (
-                <div className="mb-4 px-3 py-2 rounded-md bg-red-950 border border-red-700 text-red-400 text-sm">
+                <div className="mb-4 px-3 py-2 rounded-lg bg-red-950 border border-red-700 text-red-400 text-sm flex items-center gap-2">
+                  <AlertCircle className="h-4 w-4 shrink-0" />
                   {formError}
                 </div>
               )}
@@ -129,21 +131,68 @@ export default function InvestigationsPage() {
       </div>
 
       {error && (
-        <div className="px-4 py-3 rounded-md bg-red-950 border border-red-700 text-red-400 text-sm">
+        <div className="px-4 py-3 rounded-lg bg-red-950/50 border border-red-700/50 text-red-400 text-sm flex items-center gap-2">
+          <AlertCircle className="h-4 w-4 shrink-0" />
           {error}
         </div>
       )}
 
-      {/* Table */}
-      <div className="cyber-card overflow-hidden">
+      {/* ── Mobile card list (hidden on md+) ── */}
+      <div className="md:hidden space-y-3">
+        {loading ? (
+          Array.from({ length: 4 }).map((_, i) => (
+            <div key={i} className="cyber-card p-4 animate-pulse h-24" />
+          ))
+        ) : investigations.length === 0 ? (
+          <div className="cyber-card p-10 text-center">
+            <Search className="h-10 w-10 text-slate-600 mx-auto mb-3" />
+            <p className="text-slate-400 text-sm">No investigations yet.</p>
+            <p className="text-slate-500 text-xs mt-1">Tap <strong className="text-slate-400">New</strong> to get started.</p>
+          </div>
+        ) : (
+          investigations.map(inv => (
+            <div key={inv.id} className="cyber-card p-4 space-y-2 active:bg-slate-800/60 transition-colors">
+              <div className="flex items-start justify-between gap-2">
+                <p className="text-sm font-semibold text-slate-100 leading-snug">{inv.title}</p>
+                <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border ${STATUS_STYLES[inv.status]}`}>
+                  {inv.status}
+                </span>
+              </div>
+              {inv.description && (
+                <p className="text-xs text-slate-500 line-clamp-2">{inv.description}</p>
+              )}
+              <div className="flex items-center gap-3 text-xs text-slate-500 flex-wrap">
+                <span className="flex items-center gap-1">
+                  <Clock className="h-3 w-3" />
+                  {formatDistanceToNow(new Date(inv.updated_at), { addSuffix: true })}
+                </span>
+                <span className="flex items-center gap-1">
+                  <FileText className="h-3 w-3" />
+                  {inv.findings_count ?? 0} finding{(inv.findings_count ?? 0) !== 1 ? 's' : ''}
+                </span>
+                {inv.tags.length > 0 && (
+                  <span className="flex items-center gap-1">
+                    <Tag className="h-3 w-3" />
+                    {inv.tags.slice(0, 2).join(', ')}
+                    {inv.tags.length > 2 && ` +${inv.tags.length - 2}`}
+                  </span>
+                )}
+              </div>
+            </div>
+          ))
+        )}
+      </div>
+
+      {/* ── Desktop table (hidden on mobile) ── */}
+      <div className="hidden md:block cyber-card overflow-hidden">
         <table className="w-full text-sm">
           <thead>
             <tr className="border-b border-slate-800 text-left">
               <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Title</th>
-              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden sm:table-cell">Status</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Status</th>
               <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Tags</th>
               <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden lg:table-cell">Updated</th>
-              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider hidden md:table-cell">Findings</th>
+              <th className="px-5 py-3 text-xs font-semibold text-slate-500 uppercase tracking-wider">Findings</th>
             </tr>
           </thead>
           <tbody className="divide-y divide-slate-800">
@@ -157,8 +206,9 @@ export default function InvestigationsPage() {
               ))
             ) : investigations.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-5 py-8 text-center text-slate-500">
-                  No investigations yet. Create one to get started.
+                <td colSpan={5} className="px-5 py-12 text-center">
+                  <Search className="h-8 w-8 text-slate-600 mx-auto mb-2" />
+                  <p className="text-slate-500 text-sm">No investigations yet. Create one to get started.</p>
                 </td>
               </tr>
             ) : (
@@ -170,7 +220,7 @@ export default function InvestigationsPage() {
                       <div className="text-xs text-slate-500 mt-0.5 truncate max-w-xs">{inv.description}</div>
                     )}
                   </td>
-                  <td className="px-5 py-3 hidden sm:table-cell">
+                  <td className="px-5 py-3">
                     <span className={`text-xs px-2 py-0.5 rounded-full border ${STATUS_STYLES[inv.status]}`}>
                       {inv.status}
                     </span>
@@ -178,7 +228,7 @@ export default function InvestigationsPage() {
                   <td className="px-5 py-3 hidden md:table-cell">
                     <div className="flex flex-wrap gap-1">
                       {inv.tags.slice(0, 3).map(tag => (
-                        <span key={tag} className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded">
+                        <span key={tag} className="text-xs bg-slate-800 text-slate-400 px-2 py-0.5 rounded-full">
                           {tag}
                         </span>
                       ))}
@@ -187,7 +237,7 @@ export default function InvestigationsPage() {
                   <td className="px-5 py-3 text-xs text-slate-500 hidden lg:table-cell">
                     {formatDistanceToNow(new Date(inv.updated_at), { addSuffix: true })}
                   </td>
-                  <td className="px-5 py-3 text-xs text-slate-400 hidden md:table-cell">
+                  <td className="px-5 py-3 text-xs text-slate-400">
                     {inv.findings_count ?? 0}
                   </td>
                 </tr>
