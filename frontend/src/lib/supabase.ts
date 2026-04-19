@@ -9,10 +9,18 @@ function isValidHttpUrl(url: string | undefined): boolean {
   }
 }
 
-const supabaseUrl = isValidHttpUrl(process.env.NEXT_PUBLIC_SUPABASE_URL)
-  ? process.env.NEXT_PUBLIC_SUPABASE_URL!
-  : 'https://placeholder.supabase.co'
-const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
+const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
+const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
+
+if (!isValidHttpUrl(envUrl) && process.env.NODE_ENV !== 'production') {
+  console.warn(
+    '[supabase] NEXT_PUBLIC_SUPABASE_URL is not set or is not a valid URL. ' +
+    'Authentication will not work until real Supabase credentials are configured.'
+  )
+}
+
+const supabaseUrl = isValidHttpUrl(envUrl) ? envUrl! : 'https://placeholder.supabase.co'
+const supabaseAnonKey = envKey || 'placeholder-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
