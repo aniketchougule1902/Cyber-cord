@@ -1,6 +1,17 @@
 import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL || 'http://placeholder.supabase.co'
+function isValidHttpUrl(url: string | undefined): boolean {
+  try {
+    const parsed = new URL(url ?? '')
+    return parsed.protocol === 'http:' || parsed.protocol === 'https:'
+  } catch {
+    return false
+  }
+}
+
+const supabaseUrl = isValidHttpUrl(process.env.NEXT_PUBLIC_SUPABASE_URL)
+  ? process.env.NEXT_PUBLIC_SUPABASE_URL!
+  : 'https://placeholder.supabase.co'
 const supabaseAnonKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY || 'placeholder-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
