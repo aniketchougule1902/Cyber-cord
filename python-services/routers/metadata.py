@@ -32,11 +32,22 @@ def _convert_to_degrees(value) -> float:
 
 
 def _extract_exif(image: Image.Image) -> dict[str, Any]:
-    """Extract EXIF data from a Pillow Image object."""
+    """Extract EXIF data from a Pillow Image object using the public API."""
+    raw_exif: dict | None = None
     try:
-        raw_exif = image._getexif()  # type: ignore[attr-defined]
+        # Public API (Pillow >= 6.0): returns an Exif object that behaves like a dict
+        exif_obj = image.getexif()
+        if exif_obj:
+            raw_exif = dict(exif_obj)
     except (AttributeError, Exception):
-        raw_exif = None
+        pass
+
+    # Fallback to private _getexif() for older Pillow builds
+    if raw_exif is None:
+        try:
+            raw_exif = image._getexif()  # type: ignore[attr-defined]
+        except (AttributeError, Exception):
+            raw_exif = None
 
     if not raw_exif:
         return {}

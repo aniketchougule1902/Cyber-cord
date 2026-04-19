@@ -203,7 +203,12 @@ async def port_scan(request: Request, body: PortScanRequest) -> ToolResponse:
     await asyncio.gather(*[_probe(p) for p in ports_to_scan])
     open_ports.sort(key=lambda x: x["port"])
 
-    risk = RiskLevel.high if len(open_ports) > 10 else RiskLevel.medium if open_ports else RiskLevel.low
+    if len(open_ports) > 10:
+        risk = RiskLevel.high
+    elif open_ports:
+        risk = RiskLevel.medium
+    else:
+        risk = RiskLevel.low
 
     return ToolResponse(
         tool="port_scan",
