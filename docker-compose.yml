@@ -1,0 +1,86 @@
+version: "3.9"
+
+services:
+  # ----------------------------------------------------------------
+  # Next.js Frontend
+  # ----------------------------------------------------------------
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    ports:
+      - "3000:3000"
+    environment:
+      - NODE_ENV=development
+      - NEXT_PUBLIC_SUPABASE_URL=${NEXT_PUBLIC_SUPABASE_URL}
+      - NEXT_PUBLIC_SUPABASE_ANON_KEY=${NEXT_PUBLIC_SUPABASE_ANON_KEY}
+      - NEXT_PUBLIC_BACKEND_URL=http://localhost:4000
+    depends_on:
+      - backend
+    networks:
+      - cybercord
+
+  # ----------------------------------------------------------------
+  # Express API Gateway
+  # ----------------------------------------------------------------
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    ports:
+      - "4000:4000"
+    environment:
+      - NODE_ENV=development
+      - PORT=4000
+      - SUPABASE_URL=${SUPABASE_URL}
+      - SUPABASE_ANON_KEY=${SUPABASE_ANON_KEY}
+      - SUPABASE_SERVICE_ROLE_KEY=${SUPABASE_SERVICE_ROLE_KEY}
+      - JWT_SECRET=${JWT_SECRET}
+      - PYTHON_SERVICES_URL=http://python-services:8000
+      - AI_ENGINE_URL=http://ai-engine:5001
+      - CORS_ORIGIN=http://localhost:3000
+    depends_on:
+      - python-services
+      - ai-engine
+    networks:
+      - cybercord
+
+  # ----------------------------------------------------------------
+  # Python OSINT Microservices (FastAPI)
+  # ----------------------------------------------------------------
+  python-services:
+    build:
+      context: ./python-services
+      dockerfile: Dockerfile
+    ports:
+      - "8000:8000"
+    environment:
+      - PYTHON_ENV=development
+      - PORT=8000
+      - HIBP_API_KEY=${HIBP_API_KEY}
+      - ABUSEIPDB_API_KEY=${ABUSEIPDB_API_KEY}
+      - ALLOWED_ORIGINS=http://localhost:3000,http://localhost:4000
+    networks:
+      - cybercord
+
+  # ----------------------------------------------------------------
+  # AI Engine (OpenAI-compatible)
+  # ----------------------------------------------------------------
+  ai-engine:
+    build:
+      context: ./ai-engine
+      dockerfile: Dockerfile
+    ports:
+      - "5001:5001"
+    environment:
+      - PORT=5001
+      - OPENAI_API_KEY=${OPENAI_API_KEY}
+      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
+      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo-preview}
+      - BACKEND_API_KEY=${BACKEND_API_KEY}
+    networks:
+      - cybercord
+
+networks:
+  cybercord:
+    driver: bridge
