@@ -12,15 +12,26 @@ function isValidHttpUrl(url: string | undefined): boolean {
 const envUrl = process.env.NEXT_PUBLIC_SUPABASE_URL
 const envKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 
-if (!isValidHttpUrl(envUrl) && process.env.NODE_ENV !== 'production') {
+const urlConfigured = isValidHttpUrl(envUrl)
+const keyConfigured = !!envKey && envKey !== 'placeholder-anon-key'
+
+/**
+ * True when both NEXT_PUBLIC_SUPABASE_URL and NEXT_PUBLIC_SUPABASE_ANON_KEY are
+ * set to real (non-placeholder) values. Use this flag in auth helpers to surface
+ * a meaningful error instead of letting requests fail with "Failed to fetch".
+ */
+export const supabaseConfigured = urlConfigured && keyConfigured
+
+if (!supabaseConfigured) {
   console.warn(
-    '[supabase] NEXT_PUBLIC_SUPABASE_URL is not set or is not a valid URL. ' +
-    'Authentication will not work until real Supabase credentials are configured.'
+    '[supabase] NEXT_PUBLIC_SUPABASE_URL or NEXT_PUBLIC_SUPABASE_ANON_KEY is not set. ' +
+    'Authentication will not work until real Supabase credentials are configured in your ' +
+    'environment variables (e.g. frontend/.env.local).'
   )
 }
 
-const supabaseUrl = isValidHttpUrl(envUrl) ? envUrl! : 'https://placeholder.supabase.co'
-const supabaseAnonKey = envKey || 'placeholder-anon-key'
+const supabaseUrl = urlConfigured ? envUrl! : 'https://placeholder.supabase.co'
+const supabaseAnonKey = keyConfigured ? envKey! : 'placeholder-anon-key'
 
 export const supabase = createClient(supabaseUrl, supabaseAnonKey)
 
