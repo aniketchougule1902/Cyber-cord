@@ -24,11 +24,20 @@ const app = express();
 // Security headers
 app.use(helmet());
 
-// CORS
-const corsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+// CORS — supports a comma-separated CORS_ORIGIN list, e.g.:
+//   CORS_ORIGIN=https://my-app.vercel.app,https://my-custom-domain.com
+const rawCorsOrigin = process.env.CORS_ORIGIN || 'http://localhost:3000';
+const corsAllowedOrigins = rawCorsOrigin.split(',').map((o) => o.trim());
 app.use(
   cors({
-    origin: corsOrigin,
+    origin: (origin, callback) => {
+      // Allow requests with no origin (e.g. server-to-server, curl)
+      if (!origin || corsAllowedOrigins.includes(origin)) {
+        callback(null, true);
+      } else {
+        callback(new Error(`CORS: origin '${origin}' not allowed`));
+      }
+    },
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
