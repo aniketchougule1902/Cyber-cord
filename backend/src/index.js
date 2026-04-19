@@ -5,46 +5,15 @@ const helmet = require('helmet');
 const cors = require('cors');
 const compression = require('compression');
 const morgan = require('morgan');
-const winston = require('winston');
 
 const { generalLimiter } = require('./middleware/rateLimiter');
 const sanitize = require('./middleware/sanitize');
-const { requestLogger } = require('./middleware/logger');
+const { logger, requestLogger } = require('./middleware/logger');
 
 const toolsRouter = require('./routes/tools');
 const investigationsRouter = require('./routes/investigations');
 const aiRouter = require('./routes/ai');
 const adminRouter = require('./routes/admin');
-
-// ============================================================
-// Winston application logger
-// ============================================================
-
-const logger = winston.createLogger({
-  level: process.env.LOG_LEVEL || 'info',
-  format: winston.format.combine(
-    winston.format.timestamp(),
-    winston.format.errors({ stack: true }),
-    winston.format.printf(({ level, message, timestamp, stack }) =>
-      stack
-        ? `${timestamp} [${level.toUpperCase()}] ${message}\n${stack}`
-        : `${timestamp} [${level.toUpperCase()}] ${message}`
-    )
-  ),
-  transports: [
-    new winston.transports.Console({
-      format: winston.format.combine(
-        winston.format.colorize({ all: true }),
-        winston.format.timestamp(),
-        winston.format.printf(({ level, message, timestamp, stack }) =>
-          stack
-            ? `${timestamp} [${level}] ${message}\n${stack}`
-            : `${timestamp} [${level}] ${message}`
-        )
-      ),
-    }),
-  ],
-});
 
 // ============================================================
 // Express app setup

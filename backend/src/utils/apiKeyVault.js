@@ -1,4 +1,5 @@
 const crypto = require('crypto');
+const { logger } = require('../middleware/logger');
 const { supabaseAdmin, supabase } = require('../config/supabase');
 
 const KEY_PREFIX = 'cc_';
@@ -13,7 +14,10 @@ function generateApiKey() {
 }
 
 /**
- * Returns the SHA-256 hex digest of the given key.
+ * Returns the SHA-256 hex digest of the given API key token.
+ * SHA-256 is appropriate here because API keys are randomly generated
+ * 256-bit tokens (not user-chosen passwords); they already carry sufficient
+ * entropy that a fast hash is acceptable for storage.
  */
 function hashApiKey(key) {
   return crypto.createHash('sha256').update(key).digest('hex');
@@ -111,11 +115,15 @@ async function lookupApiKey(plaintext) {
 
   if (error || !data) return null;
 
-  // Fire-and-forget last_used_at update
+  // Update last_used_at asynchronously; log failures for observability
   db.from('api_keys')
     .update({ last_used_at: new Date().toISOString() })
     .eq('id', data.id)
-    .then(() => {});
+    .then(({ error: updateError }) => {
+      if (updateError) {
+        logger.warn(`Failed to update last_used_at for api_key ${data.id}: ${updateError.message}`);
+      }
+    });
 
   return data;
 }

@@ -277,9 +277,16 @@ router.post(
       return res.status(400).json({ errors: errors.array() });
     }
 
-    const { tool_name, input, investigation_id } = req.body;
+    const { tool_name: rawToolName, input, investigation_id } = req.body;
     const userId = req.user.id;
     const startTime = Date.now();
+
+    // Resolve the canonical tool name from the registry to prevent URL injection
+    const toolMeta = TOOLS.find((t) => t.tool_name === rawToolName);
+    if (!toolMeta) {
+      return res.status(400).json({ error: 'Unknown tool' });
+    }
+    const tool_name = toolMeta.tool_name;
 
     // Stable hash of the input for deduplication / audit
     const inputHash = crypto
@@ -288,7 +295,7 @@ router.post(
       .digest('hex');
 
     // Insert a pending log row upfront
-    const { data: logRow } = await supabase
+    const { data: logRow, error: logInsertError } = await supabase
       .from('tool_usage_logs')
       .insert({
         user_id: userId,
@@ -299,12 +306,18 @@ router.post(
       .select('id')
       .single();
 
+    if (logInsertError) {
+      return res.status(500).json({ error: 'Failed to initialise usage log' });
+    }
+
     const logId = logRow?.id;
 
     try {
       const pythonUrl = process.env.PYTHON_SERVICES_URL || 'http://localhost:8000';
+      // tool_name is resolved from the static TOOLS registry — never raw user input
+      const toolPath = encodeURIComponent(tool_name);
       const response = await axios.post(
-        `${pythonUrl}/tools/${tool_name}`,
+        `${pythonUrl}/tools/${toolPath}`,
         { input },
         { timeout: 30000 }
       );
@@ -321,13 +334,12 @@ router.post(
 
       // If caller provided an investigation_id, auto-save a finding
       if (investigation_id) {
-        const toolMeta = TOOLS.find((t) => t.tool_name === tool_name);
         await supabase.from('investigation_findings').insert({
           investigation_id,
           tool_name,
           input_data: input,
           result_data: response.data,
-          risk_level: toolMeta?.risk_level || 'low',
+          risk_level: toolMeta.risk_level,
         });
       }
 
