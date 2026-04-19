@@ -31,7 +31,11 @@ export function useInvestigations() {
   }
 
   const updateInvestigation = async (id: string, data: Partial<Investigation>) => {
-    const res = await investigationsApi.update(id, data)
+    const apiData = {
+      ...data,
+      description: data.description ?? undefined,
+    }
+    const res = await investigationsApi.update(id, apiData)
     setInvestigations(prev => prev.map(inv => inv.id === id ? { ...inv, ...res.data.investigation } : inv))
     return res.data
   }
