@@ -18,7 +18,7 @@ def sanitize_domain(domain: str) -> str:
     if domain.startswith("www."):
         domain = domain[4:]
     # Validate: allow labels of a-z, 0-9, hyphens, dots
-    if not re.match(r"^[a-z0-9]([a-z0-9\-.]*[a-z0-9])?$", domain):
+    if not re.match(r"^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$", domain):
         raise ValueError(f"Invalid domain: {domain!r}")
     if len(domain) > 253:
         raise ValueError("Domain name too long")
@@ -33,6 +33,50 @@ def sanitize_ip(ip: str) -> str:
     except ValueError:
         raise ValueError(f"Invalid IP address: {ip!r}")
     return str(addr)
+
+
+def sanitize_host(host: str) -> str:
+    """Accept a hostname (domain) or a bare IPv4/IPv6 address.
+
+    Returns the normalised host string without protocol, path, or port.
+    """
+    host = host.strip().lower()
+    # Remove protocol
+    for prefix in ("https://", "http://", "ftp://"):
+        if host.startswith(prefix):
+            host = host[len(prefix):]
+    # Remove path, query, fragment
+    host = host.split("/")[0].split("?")[0].split("#")[0]
+
+    # Handle bracket-enclosed IPv6 literals (e.g. [::1] or [::1]:8080)
+    if host.startswith("["):
+        bracket_end = host.find("]")
+        if bracket_end == -1:
+            raise ValueError(f"Invalid host: {host!r}")
+        ipv6_str = host[1:bracket_end]
+        try:
+            addr = ipaddress.ip_address(ipv6_str)
+            return str(addr)
+        except ValueError:
+            raise ValueError(f"Invalid IPv6 literal: {host!r}")
+
+    # Try to parse as a bare IP address (IPv4 or IPv6) before port-stripping
+    try:
+        addr = ipaddress.ip_address(host)
+        return str(addr)
+    except ValueError:
+        pass
+
+    # Domain[:port] — strip port if present
+    if ":" in host:
+        host = host.rsplit(":", 1)[0]
+
+    # Validate as a domain / hostname label
+    if not re.match(r"^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$", host):
+        raise ValueError(f"Invalid host: {host!r}")
+    if len(host) > 253:
+        raise ValueError("Host name too long")
+    return host
 
 
 def sanitize_email(email: str) -> str:

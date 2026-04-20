@@ -245,6 +245,29 @@ const TOOLS = [
 const TOOL_NAMES = new Set(TOOLS.map((t) => t.tool_name));
 
 // ============================================================
+// Mapping from tool_name → Python service endpoint path
+// ============================================================
+
+const TOOL_PATH_MAP = {
+  'email-breach-check': '/email/breach-check',
+  'email-verify': '/email/verify',
+  'email-headers': '/email/analyze-headers',
+  'dns-lookup': '/domain/dns-lookup',
+  'whois': '/domain/whois',
+  'ssl-cert': '/domain/ssl-cert',
+  'subdomain-enum': '/domain/subdomains',
+  'ip-geolocate': '/ip/geolocate',
+  'ip-reputation': '/ip/reputation',
+  'port-scan': '/ip/port-scan',
+  'username-check': '/username/check',
+  'phone-lookup': '/phone/lookup',
+  'phone-format': '/phone/format',
+  'metadata-extract': '/metadata/extract-url',
+  'github-osint': '/social/github-osint',
+  'password-strength': '/social/password-strength',
+};
+
+// ============================================================
 // GET /list
 // ============================================================
 
@@ -314,11 +337,13 @@ router.post(
 
     try {
       const pythonUrl = process.env.PYTHON_SERVICES_URL || 'http://localhost:8000';
-      // tool_name is resolved from the static TOOLS registry — never raw user input
-      const toolPath = encodeURIComponent(tool_name);
+      const toolPath = TOOL_PATH_MAP[tool_name];
+      if (!toolPath) {
+        return res.status(400).json({ error: `No Python endpoint mapped for tool: ${tool_name}` });
+      }
       const response = await axios.post(
-        `${pythonUrl}/tools/${toolPath}`,
-        { input },
+        `${pythonUrl}${toolPath}`,
+        input,
         { timeout: 30000 }
       );
 

@@ -59,7 +59,7 @@ class WhoisRequest(BaseModel):
 
 
 class SslCertRequest(BaseModel):
-    domain: str
+    host: str
     port: int = 443
 
     @field_validator("port")
@@ -85,7 +85,7 @@ class IpReputationRequest(BaseModel):
 
 
 class PortScanRequest(BaseModel):
-    ip: str
+    host: str
     ports: Optional[list[int]] = None
 
     @field_validator("ports")
@@ -122,3 +122,10 @@ class GithubOsintRequest(BaseModel):
 
 class PasswordStrengthRequest(BaseModel):
     password: str
+
+
+# ── Metadata ───────────────────────────────────────────────────────────────────
+
+class MetadataUrlRequest(BaseModel):
+    url: Optional[str] = None
+    file_base64: Optional[str] = None

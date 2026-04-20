@@ -130,7 +130,7 @@ async def whois_lookup(request: Request, body: WhoisRequest) -> ToolResponse:
 @limiter.limit("20/minute")
 async def ssl_cert(request: Request, body: SslCertRequest) -> ToolResponse:
     try:
-        domain = sanitize_domain(body.domain)
+        host = sanitize_domain(body.host)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
@@ -141,8 +141,8 @@ async def ssl_cert(request: Request, body: SslCertRequest) -> ToolResponse:
         ctx = ssl.create_default_context()
         ctx.minimum_version = ssl.TLSVersion.TLSv1_2
         conn = ctx.wrap_socket(
-            socket.create_connection((domain, port), timeout=10),
-            server_hostname=domain,
+            socket.create_connection((host, port), timeout=10),
+            server_hostname=host,
         )
         try:
             cert = conn.getpeercert()
@@ -156,8 +156,8 @@ async def ssl_cert(request: Request, body: SslCertRequest) -> ToolResponse:
         ctx.check_hostname = False
         ctx.verify_mode = ssl.CERT_NONE
         conn = ctx.wrap_socket(
-            socket.create_connection((domain, port), timeout=10),
-            server_hostname=domain,
+            socket.create_connection((host, port), timeout=10),
+            server_hostname=host,
         )
         try:
             cert = conn.getpeercert()
@@ -221,9 +221,9 @@ async def ssl_cert(request: Request, body: SslCertRequest) -> ToolResponse:
 
     return ToolResponse(
         tool="ssl_cert",
-        input=f"{domain}:{port}",
+        input=f"{host}:{port}",
         result={
-            "domain": domain,
+            "host": host,
             "port": port,
             "subject": subject,
             "issuer": issuer,
