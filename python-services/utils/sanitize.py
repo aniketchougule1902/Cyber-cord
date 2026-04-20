@@ -18,7 +18,7 @@ def sanitize_domain(domain: str) -> str:
     if domain.startswith("www."):
         domain = domain[4:]
     # Validate: allow labels of a-z, 0-9, hyphens, dots
-    if not re.match(r"^[a-z0-9]([a-z0-9.\-]*[a-z0-9])?$", domain):
+    if not re.match(r"^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$", domain):
         raise ValueError(f"Invalid domain: {domain!r}")
     if len(domain) > 253:
         raise ValueError("Domain name too long")
@@ -72,7 +72,7 @@ def sanitize_host(host: str) -> str:
         host = host.rsplit(":", 1)[0]
 
     # Validate as a domain / hostname label
-    if not re.match(r"^[a-z0-9]([a-z0-9.\-]*[a-z0-9])?$", host):
+    if not re.match(r"^[a-z0-9]([a-z0-9\.\-]*[a-z0-9])?$", host):
         raise ValueError(f"Invalid host: {host!r}")
     if len(host) > 253:
         raise ValueError("Host name too long")

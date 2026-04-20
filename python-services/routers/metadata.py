@@ -67,11 +67,48 @@ def _validate_url_for_ssrf(url: str) -> None:
             addr = ipaddress.ip_address(ip_str)
         except ValueError:
             continue
-        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+        if (
+            addr.is_private
+            or addr.is_loopback
+            or addr.is_link_local
+            or addr.is_reserved
+            or addr.is_multicast
+        ):
             raise HTTPException(
                 status_code=422,
                 detail="URL resolves to a private or internal network address.",
             )
+
+
+_MAX_REDIRECTS = 5
+
+
+async def _fetch_image_safely(url: str) -> bytes:
+    """Fetch *url* with SSRF-safe redirect handling (each hop is re-validated)."""
+    _validate_url_for_ssrf(url)
+    async with httpx.AsyncClient(timeout=15, follow_redirects=False) as client:
+        for _ in range(_MAX_REDIRECTS + 1):
+            try:
+                resp = await client.get(url)
+            except httpx.RequestError as exc:
+                raise HTTPException(status_code=502, detail=f"Failed to fetch URL: {exc}")
+
+            if resp.status_code in (301, 302, 303, 307, 308):
+                location = resp.headers.get("location", "")
+                if not location:
+                    raise HTTPException(status_code=502, detail="Redirect missing Location header.")
+                url = urllib.parse.urljoin(url, location)
+                _validate_url_for_ssrf(url)
+                continue
+
+            try:
+                resp.raise_for_status()
+            except httpx.HTTPStatusError as exc:
+                raise HTTPException(status_code=502, detail=f"URL returned error: {exc}")
+
+            return resp.content
+
+    raise HTTPException(status_code=502, detail="Too many redirects.")
 
 
 def _convert_to_degrees(value) -> float:
@@ -344,16 +381,7 @@ async def extract_metadata_url(
     if body.url:
         url = body.url.strip()
         source_name = url.split("?")[0].split("/")[-1] or url
-        _validate_url_for_ssrf(url)
-        try:
-            async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
-                resp = await client.get(url)
-                resp.raise_for_status()
-                data = resp.content
-        except httpx.RequestError as exc:
-            raise HTTPException(status_code=502, detail=f"Failed to fetch URL: {exc}")
-        except httpx.HTTPStatusError as exc:
-            raise HTTPException(status_code=502, detail=f"URL returned error: {exc}")
+        data = await _fetch_image_safely(url)
     elif body.file_base64:
         try:
             data = base64.b64decode(body.file_base64)
