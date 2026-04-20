@@ -14,9 +14,21 @@ export function useInvestigations() {
     try {
       const res = await investigationsApi.list({ page, limit })
       setInvestigations(res.data.investigations || res.data.data || [])
-      setTotal(res.data.total || 0)
+      setTotal(res.data.pagination?.total ?? res.data.total ?? 0)
+      setError(null)
     } catch (err: unknown) {
-      setError(err instanceof Error ? err.message : 'Failed to fetch investigations')
+      // Network / CORS errors mean backend is not reachable — show empty state instead of alarming banner
+      const hasResponse = (e: unknown): e is { response: unknown } =>
+        typeof e === 'object' && e !== null && 'response' in e
+      const isNetworkError = err instanceof Error && (
+        err.message.toLowerCase().includes('network') ||
+        err.message.toLowerCase().includes('econnrefused') ||
+        err.message.toLowerCase().includes('failed to fetch') ||
+        !hasResponse(err)
+      )
+      if (!isNetworkError) {
+        setError(err instanceof Error ? err.message : 'Failed to fetch investigations')
+      }
     } finally {
       setLoading(false)
     }

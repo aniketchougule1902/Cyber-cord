@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useRef, useCallback } from 'react'
+import { useEffect, useRef, useCallback, useState } from 'react'
 import * as THREE from 'three'
 
 const INTRO_DURATION_SECONDS = 10.5
@@ -9,10 +9,39 @@ interface SatelliteIntroProps {
   onComplete: () => void
 }
 
+// Boot-sequence lines shown progressively in the HUD
+const BOOT_LINES = [
+  '> Initializing CyberCord v2.0…',
+  '> Loading threat intelligence modules…',
+  '> Establishing encrypted uplink…',
+  '> Satellite handshake: OK',
+  '> Signal acquisition: LOCKED',
+  '> Decrypting geo-location feed…',
+  '> OSINT engine: READY',
+  '> Secure session authenticated.',
+  '> Welcome, Analyst.',
+]
+
 export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
   const mountRef = useRef<HTMLDivElement>(null)
   const onCompleteRef = useRef(onComplete)
   onCompleteRef.current = onComplete
+
+  const [progress, setProgress] = useState(0)
+  const [bootLines, setBootLines] = useState<string[]>([])
+  const [phaseLabel, setPhaseLabel] = useState('STANDBY')
+  const [coords, setCoords] = useState({ lat: '0.000°N', lon: '0.000°E' })
+
+  // Derived skip handler — just call onComplete immediately
+  const handleSkip = () => {
+    onCompleteRef.current()
+  }
+
+  // Boot-line typewriter effect driven by progress
+  useEffect(() => {
+    const count = Math.floor(progress * BOOT_LINES.length)
+    setBootLines(BOOT_LINES.slice(0, count))
+  }, [progress])
 
   const init = useCallback(() => {
     const mount = mountRef.current
@@ -35,21 +64,23 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
     camera.position.set(0, 0, 80)
     camera.lookAt(0, 0, 0)
 
-    // ─── Stars ───────────────────────────────────────────────────────────────
-    const starCount = 6000
-    const starPositions = new Float32Array(starCount * 3)
-    for (let i = 0; i < starCount; i++) {
-      const theta = Math.random() * Math.PI * 2
-      const phi = Math.acos(2 * Math.random() - 1)
-      const r = 600 + Math.random() * 400
-      starPositions[i * 3] = r * Math.sin(phi) * Math.cos(theta)
-      starPositions[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
-      starPositions[i * 3 + 2] = r * Math.cos(phi)
+    // ─── Stars (two layers for parallax depth) ───────────────────────────────
+    const addStarLayer = (count: number, rMin: number, rMax: number, size: number, color: number) => {
+      const pos = new Float32Array(count * 3)
+      for (let i = 0; i < count; i++) {
+        const theta = Math.random() * Math.PI * 2
+        const phi = Math.acos(2 * Math.random() - 1)
+        const r = rMin + Math.random() * (rMax - rMin)
+        pos[i * 3] = r * Math.sin(phi) * Math.cos(theta)
+        pos[i * 3 + 1] = r * Math.sin(phi) * Math.sin(theta)
+        pos[i * 3 + 2] = r * Math.cos(phi)
+      }
+      const geo = new THREE.BufferGeometry()
+      geo.setAttribute('position', new THREE.BufferAttribute(pos, 3))
+      scene.add(new THREE.Points(geo, new THREE.PointsMaterial({ color, size, sizeAttenuation: true })))
     }
-    const starGeo = new THREE.BufferGeometry()
-    starGeo.setAttribute('position', new THREE.BufferAttribute(starPositions, 3))
-    const starMat = new THREE.PointsMaterial({ color: 0xffffff, size: 0.4, sizeAttenuation: true })
-    scene.add(new THREE.Points(starGeo, starMat))
+    addStarLayer(6000, 600, 1000, 0.4, 0xffffff)
+    addStarLayer(2000, 200, 600, 0.25, 0xaaddff)
 
     // ─── Earth ───────────────────────────────────────────────────────────────
     const earthRadius = 20
@@ -149,6 +180,15 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
     const cloudMesh = new THREE.Mesh(new THREE.SphereGeometry(earthRadius * 1.02, 64, 64), cloudMat)
     scene.add(cloudMesh)
 
+    // ─── Orbit Ring ──────────────────────────────────────────────────────────
+    const orbitRadius = earthRadius + 12
+    const orbitTilt = 0.4
+    const orbitRingGeo = new THREE.TorusGeometry(orbitRadius, 0.06, 8, 128)
+    const orbitRingMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.18 })
+    const orbitRing = new THREE.Mesh(orbitRingGeo, orbitRingMat)
+    orbitRing.rotation.x = Math.PI / 2 - orbitTilt
+    scene.add(orbitRing)
+
     // ─── Satellite ───────────────────────────────────────────────────────────
     const satGroup = new THREE.Group()
     const bodyMat = new THREE.MeshStandardMaterial({ color: 0x888899, metalness: 0.9, roughness: 0.2 })
@@ -164,9 +204,10 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
     dish.position.set(0, 0.55, 0)
     dish.rotation.x = Math.PI
     satGroup.add(dish)
+    // Satellite glow
+    const satGlowMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.25 })
+    satGroup.add(new THREE.Mesh(new THREE.SphereGeometry(0.5, 12, 12), satGlowMat))
     scene.add(satGroup)
-    const orbitRadius = earthRadius + 12
-    const orbitTilt = 0.4
 
     // ─── Signal Beam ─────────────────────────────────────────────────────────
     const beamGeo = new THREE.BufferGeometry()
@@ -182,6 +223,17 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
     const flashMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0 })
     const flashMesh = new THREE.Mesh(new THREE.SphereGeometry(0.5, 16, 16), flashMat)
     scene.add(flashMesh)
+
+    // Ripple rings around impact point
+    const rippleRings: { mesh: THREE.Mesh; mat: THREE.MeshBasicMaterial; born: number }[] = []
+    const addRipple = (pos: THREE.Vector3, t: number) => {
+      const rMat = new THREE.MeshBasicMaterial({ color: 0x00ffcc, transparent: true, opacity: 0.8, side: THREE.DoubleSide })
+      const rMesh = new THREE.Mesh(new THREE.RingGeometry(0.1, 0.18, 32), rMat)
+      rMesh.position.copy(pos)
+      rMesh.lookAt(0, 0, 0)
+      scene.add(rMesh)
+      rippleRings.push({ mesh: rMesh, mat: rMat, born: t })
+    }
 
     // ─── High-tech Building ──────────────────────────────────────────────────
     const buildingGroup = new THREE.Group()
@@ -280,6 +332,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
     let elapsed = 0
     const clock = new THREE.Clock()
     let animationId = 0
+    let lastRippleTime = -1
 
     const easeInOut = (t: number) => t < 0.5 ? 2 * t * t : -1 + (4 - 2 * t) * t
     const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
@@ -290,6 +343,8 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
       const dt = Math.min(clock.getDelta(), 0.05)
       elapsed = Math.min(elapsed + dt, totalDuration + 1)
       const t = elapsed
+
+      setProgress(Math.min(t / totalDuration, 1))
 
       // Update shader uniforms
       ;(earthMat.uniforms.time as { value: number }).value = t
@@ -310,13 +365,40 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
       )
       satGroup.rotation.y = satAngle + Math.PI / 2
 
+      // Live coords from satellite position (cosmetic)
+      const DEG_PER_RAD = 180 / Math.PI
+      const MAX_LAT_DEG = 90
+      const CIRCLE_DEG = 360
+      const satLat = (Math.sin(orbitTilt) * Math.sin(satAngle) * MAX_LAT_DEG).toFixed(3)
+      const satLon = ((satAngle * DEG_PER_RAD) % CIRCLE_DEG).toFixed(3)
+      setCoords({
+        lat: `${Math.abs(parseFloat(satLat))}°${parseFloat(satLat) >= 0 ? 'N' : 'S'}`,
+        lon: `${Math.abs(parseFloat(satLon))}°${parseFloat(satLon) >= 0 ? 'E' : 'W'}`,
+      })
+
       // Blink light
       blinkMat.opacity = Math.sin(t * 4) > 0 ? 1 : 0
 
+      // Update ripple rings
+      for (let i = rippleRings.length - 1; i >= 0; i--) {
+        const age = t - rippleRings[i].born
+        const maxAge = 1.2
+        if (age > maxAge) {
+          scene.remove(rippleRings[i].mesh)
+          rippleRings.splice(i, 1)
+        } else {
+          const s = 1 + age * 6
+          rippleRings[i].mesh.scale.setScalar(s)
+          rippleRings[i].mat.opacity = (1 - age / maxAge) * 0.7
+        }
+      }
+
       if (t < 2.5) {
         // Phase 0: Wide space view
+        setPhaseLabel('ACQUIRING SIGNAL')
         earthMesh.visible = true
         satGroup.visible = true
+        orbitRing.visible = true
         buildingGroup.visible = false
         screenGroup.visible = false
         beamMat.opacity = 0
@@ -327,6 +409,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(0, 0, 0)
       } else if (t < 4.5) {
         // Phase 1: Beam fires
+        setPhaseLabel('SIGNAL LOCKED — TRANSMITTING')
         const pt = (t - 2.5) / 2.0
         const beamProgress = easeOut(Math.min(pt, 1))
         const beamStart = satGroup.position.clone()
@@ -342,15 +425,22 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
           flashMesh.position.copy(impactPoint)
           flashMesh.scale.setScalar(1 + Math.sin((beamProgress - 0.95) * 60) * 0.5)
           flashMat.opacity = (1 - (beamProgress - 0.95) / 0.05) * 0.8
+          // Spawn ripple rings periodically
+          if (t - lastRippleTime > 0.25) {
+            addRipple(impactPoint, t)
+            lastRippleTime = t
+          }
         }
         const camP = easeInOut(Math.min(pt, 1))
         camera.position.lerpVectors(new THREE.Vector3(0, 0, 55), lerp3(satGroup.position, impactPoint, 0.3).multiplyScalar(1.5).add(new THREE.Vector3(0, 5, 15)), camP)
         camera.lookAt(lerp3(new THREE.Vector3(0, 0, 0), impactPoint, camP))
       } else if (t < 6.5) {
         // Phase 2: Through clouds, approaching surface
+        setPhaseLabel('DECRYPTING GEO-FEED')
         const pt = (t - 4.5) / 2.0
         beamMat.opacity = Math.max(0, 1 - pt * 2)
         beamGlowMat.opacity = beamMat.opacity * 0.4
+        orbitRing.visible = false
         const camP = easeOut(pt)
         camera.position.lerpVectors(
           new THREE.Vector3(impactPoint.x * 1.5, impactPoint.y * 1.5, impactPoint.z * 1.5 + 15),
@@ -360,6 +450,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(lerp3(impactPoint, new THREE.Vector3(0, 0, 0), camP * 0.5))
       } else if (t < 8.0) {
         // Phase 3: Reveal building
+        setPhaseLabel('TARGET LOCATED')
         beamMat.opacity = 0
         beamGlowMat.opacity = 0
         buildingGroup.visible = true
@@ -374,6 +465,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(new THREE.Vector3(0, 15, 30))
       } else if (t < 9.5) {
         // Phase 4: Zoom into building
+        setPhaseLabel('INFILTRATING NETWORK')
         const pt = (t - 8.0) / 1.5
         earthMesh.visible = pt < 0.5
         satGroup.visible = false
@@ -382,6 +474,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(new THREE.Vector3(0, 5, 20))
       } else if (t < INTRO_DURATION_SECONDS) {
         // Phase 5: Computer lab → screen zoom
+        setPhaseLabel('SESSION ESTABLISHED')
         earthMesh.visible = false
         satGroup.visible = false
         screenGroup.visible = true
@@ -429,6 +522,77 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
 
   return (
     <div ref={mountRef} className="fixed inset-0 z-50 bg-black" style={{ width: '100vw', height: '100vh' }}>
+
+      {/* ── Scanline overlay ── */}
+      <div
+        className="absolute inset-0 pointer-events-none z-10"
+        style={{
+          background: 'repeating-linear-gradient(0deg, transparent, transparent 2px, rgba(0,0,0,0.06) 2px, rgba(0,0,0,0.06) 4px)',
+        }}
+      />
+
+      {/* ── Top HUD bar ── */}
+      <div className="absolute top-0 inset-x-0 z-20 pointer-events-none px-4 pt-3 flex items-center justify-between">
+        {/* Left: brand + phase */}
+        <div className="flex items-center gap-3">
+          <div className="flex items-center gap-2">
+            <div className="w-1.5 h-1.5 rounded-full bg-cyan-400 animate-pulse" />
+            <span className="text-cyan-400 font-mono text-xs tracking-widest uppercase font-bold" style={{ textShadow: '0 0 8px #00ffcc' }}>
+              CYBERCORD
+            </span>
+          </div>
+          <span className="text-slate-600 font-mono text-xs">|</span>
+          <span className="text-cyan-300/70 font-mono text-xs tracking-wider">{phaseLabel}</span>
+        </div>
+
+        {/* Right: coordinates */}
+        <div className="font-mono text-xs text-cyan-400/60 tracking-wider text-right hidden sm:block">
+          <div>LAT {coords.lat}</div>
+          <div>LON {coords.lon}</div>
+        </div>
+      </div>
+
+      {/* ── Progress bar ── */}
+      <div className="absolute top-8 inset-x-0 z-20 pointer-events-none px-4">
+        <div className="h-px bg-slate-800">
+          <div
+            className="h-full bg-cyan-400 transition-all duration-100"
+            style={{ width: `${progress * 100}%`, boxShadow: '0 0 6px #00ffcc' }}
+          />
+        </div>
+      </div>
+
+      {/* ── Corner brackets (HUD frame) ── */}
+      <div className="absolute inset-0 pointer-events-none z-20 p-4 hidden sm:block">
+        {/* top-left */}
+        <div className="absolute top-4 left-4 w-6 h-6 border-t border-l border-cyan-500/40" />
+        {/* top-right */}
+        <div className="absolute top-4 right-4 w-6 h-6 border-t border-r border-cyan-500/40" />
+        {/* bottom-left */}
+        <div className="absolute bottom-4 left-4 w-6 h-6 border-b border-l border-cyan-500/40" />
+        {/* bottom-right */}
+        <div className="absolute bottom-4 right-4 w-6 h-6 border-b border-r border-cyan-500/40" />
+      </div>
+
+      {/* ── Left side boot log ── */}
+      <div className="absolute left-4 bottom-20 z-20 pointer-events-none hidden md:block max-w-xs">
+        <div className="space-y-0.5">
+          {bootLines.map((line, i) => (
+            <p
+              key={i}
+              className="font-mono text-xs text-green-400/80 leading-relaxed"
+              style={{ textShadow: '0 0 4px rgba(0,255,100,0.4)' }}
+            >
+              {line}
+              {i === bootLines.length - 1 && (
+                <span className="ml-0.5 inline-block w-1.5 h-3 bg-green-400/80 animate-pulse align-middle" />
+              )}
+            </p>
+          ))}
+        </div>
+      </div>
+
+      {/* ── Bottom center status ── */}
       <div className="absolute bottom-8 left-0 right-0 flex flex-col items-center gap-2 z-20 pointer-events-none">
         <div className="flex items-center gap-3">
           <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
@@ -440,7 +604,26 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
           </span>
           <div className="w-2 h-2 rounded-full bg-cyan-400 animate-pulse" />
         </div>
+        {/* Dot loader */}
+        <div className="flex gap-1">
+          {[0, 1, 2, 3, 4].map(i => (
+            <div
+              key={i}
+              className="w-1 h-1 rounded-full bg-cyan-400/50"
+              style={{ animation: `pulse 1.2s ${i * 0.2}s ease-in-out infinite` }}
+            />
+          ))}
+        </div>
       </div>
+
+      {/* ── Skip button ── */}
+      <button
+        onClick={handleSkip}
+        className="absolute bottom-8 right-4 z-30 font-mono text-xs text-slate-500 hover:text-cyan-400 border border-slate-700 hover:border-cyan-500/50 px-3 py-1.5 rounded transition-colors"
+        style={{ backdropFilter: 'blur(4px)' }}
+      >
+        SKIP ›
+      </button>
     </div>
   )
 }
