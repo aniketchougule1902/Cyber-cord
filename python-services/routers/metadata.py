@@ -56,18 +56,22 @@ def _validate_url_for_ssrf(url: str) -> None:
         raise HTTPException(status_code=422, detail="URL has no resolvable hostname.")
 
     try:
-        ip_str = socket.gethostbyname(hostname)
-        addr = ipaddress.ip_address(ip_str)
+        # getaddrinfo resolves both IPv4 and IPv6, preventing bypass via IPv6 literals
+        addr_infos = socket.getaddrinfo(hostname, None)
     except socket.gaierror as exc:
         raise HTTPException(status_code=422, detail=f"Cannot resolve hostname '{hostname}': {exc}")
-    except ValueError:
-        raise HTTPException(status_code=422, detail="Resolved hostname is not a valid IP address.")
 
-    if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
-        raise HTTPException(
-            status_code=422,
-            detail="URL resolves to a private or internal network address.",
-        )
+    for addr_info in addr_infos:
+        ip_str = addr_info[4][0]
+        try:
+            addr = ipaddress.ip_address(ip_str)
+        except ValueError:
+            continue
+        if addr.is_private or addr.is_loopback or addr.is_link_local or addr.is_reserved:
+            raise HTTPException(
+                status_code=422,
+                detail="URL resolves to a private or internal network address.",
+            )
 
 
 def _convert_to_degrees(value) -> float:
@@ -345,12 +349,6 @@ async def extract_metadata_url(
             async with httpx.AsyncClient(timeout=15, follow_redirects=True) as client:
                 resp = await client.get(url)
                 resp.raise_for_status()
-                content_type = resp.headers.get("content-type", "")
-                if not content_type.startswith("image/"):
-                    raise HTTPException(
-                        status_code=415,
-                        detail=f"URL does not point to an image (content-type: {content_type}).",
-                    )
                 data = resp.content
         except httpx.RequestError as exc:
             raise HTTPException(status_code=502, detail=f"Failed to fetch URL: {exc}")
