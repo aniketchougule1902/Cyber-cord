@@ -2,7 +2,7 @@
 
 import { useState } from 'react'
 import { useTools, useToolRunner } from '@/hooks/useTools'
-import type { Tool, ToolCategory, RiskLevel, ToolInputField } from '@/types'
+import type { Tool, ToolCategory, RiskLevel, ToolInputField, ToolResult } from '@/types'
 import * as Dialog from '@radix-ui/react-dialog'
 import { Wrench, Key, X, Play, AlertCircle, CheckCircle, Loader2, ChevronDown, ChevronUp } from 'lucide-react'
 
@@ -36,6 +36,10 @@ const CATEGORY_ICONS: Record<ToolCategory, string> = {
 }
 
 const ALL = 'all'
+
+function formatToolName(name: string) {
+  return name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+}
 
 export default function ToolsPage() {
   const { tools, loading } = useTools()
@@ -95,7 +99,7 @@ export default function ToolsPage() {
                 <div className="flex items-center gap-2 min-w-0">
                   <span className="text-base shrink-0">{CATEGORY_ICONS[tool.category as ToolCategory] ?? '🛠️'}</span>
                   <h3 className="text-sm font-semibold text-white truncate group-hover:text-cyan-300 transition-colors">
-                    {tool.tool_name.replace(/_/g, ' ').replace(/-/g, ' ')}
+                    {formatToolName(tool.tool_name)}
                   </h3>
                 </div>
                 <span className={`shrink-0 text-xs px-2 py-0.5 rounded-full border ${RISK_STYLES[tool.risk_level]}`}>
@@ -160,7 +164,7 @@ function ToolRunModal({ tool, onClose }: { tool: Tool; onClose: () => void }) {
     onClose()
   }
 
-  const toolLabel = tool.tool_name.replace(/[-_]/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+  const toolLabel = formatToolName(tool.tool_name)
 
   return (
     <Dialog.Root open onOpenChange={open => { if (!open) handleClose() }}>
@@ -246,7 +250,7 @@ function ToolRunModal({ tool, onClose }: { tool: Tool; onClose: () => void }) {
                     </pre>
                   )}
                   {!showRaw && (
-                    <ResultSummary result={result as unknown as Record<string, unknown>} />
+                    <ResultSummary result={result} />
                   )}
                 </div>
               </div>
@@ -340,7 +344,7 @@ function ToolField({
 
 // ─── Result Summary ───────────────────────────────────────────────────────────
 
-function ResultSummary({ result }: { result: Record<string, unknown> }) {
+function ResultSummary({ result }: { result: ToolResult }) {
   const entries = Object.entries(result).filter(([k]) => k !== 'disclaimer' && k !== 'timestamp')
   const disclaimer = result.disclaimer != null ? String(result.disclaimer) : null
   const timestamp = result.timestamp != null ? String(result.timestamp) : null

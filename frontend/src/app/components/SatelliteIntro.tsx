@@ -338,17 +338,13 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
     const easeOut = (t: number) => 1 - (1 - t) * (1 - t)
     const lerp3 = (a: THREE.Vector3, b: THREE.Vector3, t: number) => new THREE.Vector3().lerpVectors(a, b, t)
 
-    const setProgressRef = (v: number) => setProgress(v)
-    const setPhaseLabelRef = (v: string) => setPhaseLabel(v)
-    const setCoordsRef = (lat: string, lon: string) => setCoords({ lat, lon })
-
     const animate = () => {
       animationId = requestAnimationFrame(animate)
       const dt = Math.min(clock.getDelta(), 0.05)
       elapsed = Math.min(elapsed + dt, totalDuration + 1)
       const t = elapsed
 
-      setProgressRef(Math.min(t / totalDuration, 1))
+      setProgress(Math.min(t / totalDuration, 1))
 
       // Update shader uniforms
       ;(earthMat.uniforms.time as { value: number }).value = t
@@ -370,12 +366,15 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
       satGroup.rotation.y = satAngle + Math.PI / 2
 
       // Live coords from satellite position (cosmetic)
-      const satLat = (Math.sin(orbitTilt) * Math.sin(satAngle) * 90).toFixed(3)
-      const satLon = ((satAngle * 180 / Math.PI) % 360).toFixed(3)
-      setCoordsRef(
-        `${Math.abs(parseFloat(satLat))}°${parseFloat(satLat) >= 0 ? 'N' : 'S'}`,
-        `${Math.abs(parseFloat(satLon))}°${parseFloat(satLon) >= 0 ? 'E' : 'W'}`
-      )
+      const DEG_PER_RAD = 180 / Math.PI
+      const MAX_LAT_DEG = 90
+      const CIRCLE_DEG = 360
+      const satLat = (Math.sin(orbitTilt) * Math.sin(satAngle) * MAX_LAT_DEG).toFixed(3)
+      const satLon = ((satAngle * DEG_PER_RAD) % CIRCLE_DEG).toFixed(3)
+      setCoords({
+        lat: `${Math.abs(parseFloat(satLat))}°${parseFloat(satLat) >= 0 ? 'N' : 'S'}`,
+        lon: `${Math.abs(parseFloat(satLon))}°${parseFloat(satLon) >= 0 ? 'E' : 'W'}`,
+      })
 
       // Blink light
       blinkMat.opacity = Math.sin(t * 4) > 0 ? 1 : 0
@@ -396,7 +395,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
 
       if (t < 2.5) {
         // Phase 0: Wide space view
-        setPhaseLabelRef('ACQUIRING SIGNAL')
+        setPhaseLabel('ACQUIRING SIGNAL')
         earthMesh.visible = true
         satGroup.visible = true
         orbitRing.visible = true
@@ -410,7 +409,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(0, 0, 0)
       } else if (t < 4.5) {
         // Phase 1: Beam fires
-        setPhaseLabelRef('SIGNAL LOCKED — TRANSMITTING')
+        setPhaseLabel('SIGNAL LOCKED — TRANSMITTING')
         const pt = (t - 2.5) / 2.0
         const beamProgress = easeOut(Math.min(pt, 1))
         const beamStart = satGroup.position.clone()
@@ -437,7 +436,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(lerp3(new THREE.Vector3(0, 0, 0), impactPoint, camP))
       } else if (t < 6.5) {
         // Phase 2: Through clouds, approaching surface
-        setPhaseLabelRef('DECRYPTING GEO-FEED')
+        setPhaseLabel('DECRYPTING GEO-FEED')
         const pt = (t - 4.5) / 2.0
         beamMat.opacity = Math.max(0, 1 - pt * 2)
         beamGlowMat.opacity = beamMat.opacity * 0.4
@@ -451,7 +450,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(lerp3(impactPoint, new THREE.Vector3(0, 0, 0), camP * 0.5))
       } else if (t < 8.0) {
         // Phase 3: Reveal building
-        setPhaseLabelRef('TARGET LOCATED')
+        setPhaseLabel('TARGET LOCATED')
         beamMat.opacity = 0
         beamGlowMat.opacity = 0
         buildingGroup.visible = true
@@ -466,7 +465,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(new THREE.Vector3(0, 15, 30))
       } else if (t < 9.5) {
         // Phase 4: Zoom into building
-        setPhaseLabelRef('INFILTRATING NETWORK')
+        setPhaseLabel('INFILTRATING NETWORK')
         const pt = (t - 8.0) / 1.5
         earthMesh.visible = pt < 0.5
         satGroup.visible = false
@@ -475,7 +474,7 @@ export default function SatelliteIntro({ onComplete }: SatelliteIntroProps) {
         camera.lookAt(new THREE.Vector3(0, 5, 20))
       } else if (t < INTRO_DURATION_SECONDS) {
         // Phase 5: Computer lab → screen zoom
-        setPhaseLabelRef('SESSION ESTABLISHED')
+        setPhaseLabel('SESSION ESTABLISHED')
         earthMesh.visible = false
         satGroup.visible = false
         screenGroup.visible = true

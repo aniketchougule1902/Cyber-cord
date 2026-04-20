@@ -18,13 +18,14 @@ export function useInvestigations() {
       setError(null)
     } catch (err: unknown) {
       // Network / CORS errors mean backend is not reachable — show empty state instead of alarming banner
-      const isNetworkError =
-        err instanceof Error && (
-          err.message.toLowerCase().includes('network') ||
-          err.message.toLowerCase().includes('econnrefused') ||
-          err.message.toLowerCase().includes('failed to fetch') ||
-          !('response' in (err as unknown as Record<string, unknown>))
-        )
+      const hasResponse = (e: unknown): e is { response: unknown } =>
+        typeof e === 'object' && e !== null && 'response' in e
+      const isNetworkError = err instanceof Error && (
+        err.message.toLowerCase().includes('network') ||
+        err.message.toLowerCase().includes('econnrefused') ||
+        err.message.toLowerCase().includes('failed to fetch') ||
+        !hasResponse(err)
+      )
       if (!isNetworkError) {
         setError(err instanceof Error ? err.message : 'Failed to fetch investigations')
       }

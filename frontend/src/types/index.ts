@@ -62,6 +62,7 @@ export interface ToolResult {
   risk_level: RiskLevel
   disclaimer: string
   timestamp: string
+  [key: string]: unknown
 }
 
 export interface AiAnalysis {
