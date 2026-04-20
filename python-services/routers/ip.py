@@ -16,7 +16,7 @@ from models.schemas import (
     ToolResponse,
 )
 from utils.rate_limit import limiter
-from utils.sanitize import sanitize_ip
+from utils.sanitize import sanitize_host, sanitize_ip
 
 router = APIRouter(prefix="/ip", tags=["IP"])
 
@@ -174,7 +174,7 @@ async def reputation(request: Request, body: IpReputationRequest) -> ToolRespons
 @limiter.limit("5/minute")
 async def port_scan(request: Request, body: PortScanRequest) -> ToolResponse:
     try:
-        ip = sanitize_ip(body.ip)
+        host = sanitize_host(body.host)
     except ValueError as exc:
         raise HTTPException(status_code=422, detail=str(exc))
 
@@ -188,7 +188,7 @@ async def port_scan(request: Request, body: PortScanRequest) -> ToolResponse:
     async def _probe(port: int) -> None:
         async with semaphore:
             try:
-                conn = asyncio.open_connection(ip, port)
+                conn = asyncio.open_connection(host, port)
                 reader, writer = await asyncio.wait_for(conn, timeout=1.0)
                 writer.close()
                 try:
@@ -212,9 +212,9 @@ async def port_scan(request: Request, body: PortScanRequest) -> ToolResponse:
 
     return ToolResponse(
         tool="port_scan",
-        input=ip,
+        input=host,
         result={
-            "ip": ip,
+            "host": host,
             "ports_scanned": len(ports_to_scan),
             "open_port_count": len(open_ports),
             "open_ports": open_ports,
