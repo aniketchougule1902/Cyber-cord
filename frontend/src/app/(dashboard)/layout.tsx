@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, lazy, Suspense } from 'react'
 import { useRouter, usePathname } from 'next/navigation'
 import Link from 'next/link'
 import { useAuth } from '@/hooks/useAuth'
@@ -16,6 +16,11 @@ import {
 } from 'lucide-react'
 import * as Avatar from '@radix-ui/react-avatar'
 
+const SatelliteIntro = lazy(() => import('@/app/components/SatelliteIntro'))
+
+// Key stored in sessionStorage so the intro only plays once per browser session
+const INTRO_SEEN_KEY = 'cybercord_intro_seen'
+
 const navItems = [
   { href: '/dashboard', label: 'Dashboard', icon: LayoutDashboard },
   { href: '/tools', label: 'Tools', icon: Wrench },
@@ -27,6 +32,27 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   const pathname = usePathname()
   const { user, profile, loading, isAuthenticated, isAdmin, signOut } = useAuth()
   const [drawerOpen, setDrawerOpen] = useState(false)
+  const [showIntro, setShowIntro] = useState(false)
+
+  // Determine whether to play intro: only when auth loading resolves, user is
+  // authenticated, and the intro hasn't been played this session yet.
+  useEffect(() => {
+    if (loading) return
+    if (!isAuthenticated) return
+    try {
+      const seen = sessionStorage.getItem(INTRO_SEEN_KEY)
+      if (!seen) {
+        setShowIntro(true)
+      }
+    } catch {
+      // sessionStorage unavailable (e.g. private mode edge case) — skip intro
+    }
+  }, [loading, isAuthenticated])
+
+  const handleIntroComplete = () => {
+    try { sessionStorage.setItem(INTRO_SEEN_KEY, '1') } catch { /* ignore */ }
+    setShowIntro(false)
+  }
 
   useEffect(() => {
     if (!loading && !isAuthenticated) {
@@ -40,17 +66,19 @@ export default function DashboardLayout({ children }: { children: React.ReactNod
   }, [pathname])
 
   if (loading) {
-    return (
-      <div className="min-h-screen bg-slate-950 flex items-center justify-center">
-        <div className="flex flex-col items-center gap-3">
-          <Shield className="h-10 w-10 text-cyan-400 animate-pulse" />
-          <span className="text-slate-400 text-sm">Authenticating…</span>
-        </div>
-      </div>
-    )
+    // Show a minimal dark screen while auth resolves (fast — no spinner needed)
+    return <div className="min-h-screen bg-slate-950" />
   }
 
   if (!isAuthenticated) return null
+
+  if (showIntro) {
+    return (
+      <Suspense fallback={<div className="min-h-screen bg-black" />}>
+        <SatelliteIntro onComplete={handleIntroComplete} />
+      </Suspense>
+    )
+  }
 
   const displayName = profile?.display_name || user?.email?.split('@')[0] || 'Analyst'
   const initials = displayName.slice(0, 2).toUpperCase()
