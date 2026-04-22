@@ -78,7 +78,13 @@ const NOT_FOUND_PATTERNS = {
 function getSSLCertificate(hostname, port = 443) {
   return new Promise((resolve) => {
     const socket = tls.connect(
-      { host: hostname, port, servername: hostname, rejectUnauthorized: false, timeout: 10000 },
+      {
+        host: hostname, port, servername: hostname,
+        // rejectUnauthorized is intentionally false: this tool inspects the certificate
+        // itself (including self-signed and expired certs) rather than validating it.
+        rejectUnauthorized: false,
+        timeout: 10000,
+      },
       () => {
         const cert = socket.getPeerCertificate(true);
         const protocol = socket.getProtocol();
@@ -113,7 +119,7 @@ function analyzePassword(password) {
   const len = password.length;
   const hasLower   = /[a-z]/.test(password);
   const hasUpper   = /[A-Z]/.test(password);
-  const hasDigits  = /\d/.test(password).valueOf();
+  const hasDigits  = /\d/.test(password);
   const hasSpecial = /[^a-zA-Z0-9]/.test(password);
 
   let charsetSize = 0;
@@ -162,10 +168,31 @@ function analyzePassword(password) {
   if (!hasSpecial)  suggestions.push('Add special characters (!@#$%^&*...).');
   if (patterns.length) suggestions.push('Avoid common words, keyboard walks, and repeated characters.');
 
-  return { length: len, has_uppercase: hasUpper, has_lowercase: hasLower, has_digits: Boolean(hasDigits), has_special: hasSpecial, charset_size: charsetSize, entropy_bits: entropyBits, strength_score: score, strength_label: label, crack_time_estimate: crackStr, common_patterns_detected: patterns, suggestions };
+  return {
+    length: len,
+    has_uppercase: hasUpper,
+    has_lowercase: hasLower,
+    has_digits: hasDigits,
+    has_special: hasSpecial,
+    charset_size: charsetSize,
+    entropy_bits: entropyBits,
+    strength_score: score,
+    strength_label: label,
+    crack_time_estimate: crackStr,
+    common_patterns_detected: patterns,
+    suggestions,
+  };
 }
 
-// ── Safe DNS query helper ──────────────────────────────────────────────────────
+// ── IP address validator ───────────────────────────────────────────────────────
+const IPV4_RE = /^(?:(?:25[0-5]|2[0-4]\d|[01]?\d\d?)\.){3}(?:25[0-5]|2[0-4]\d|[01]?\d\d?)$/;
+// Simplified IPv6 — reject obviously invalid strings while accepting common forms
+const IPV6_RE = /^[0-9a-fA-F:]{2,39}$/;
+
+function validateIp(ip) {
+  if (IPV4_RE.test(ip) || IPV6_RE.test(ip)) return ip;
+  throw new Error('Invalid IP address format.');
+}
 async function safeDns(fn) {
   try { return await fn(); } catch { return null; }
 }
@@ -353,10 +380,10 @@ async function runTool(tool_name, input) {
 
     // ── IP: geolocate ────────────────────────────────────────────────────────
     case 'ip-geolocate': {
-      const ip = String(input.ip || '').trim();
-      if (!ip) throw new Error('IP address required.');
+      const ip = validateIp(String(input.ip || '').trim());
       const fields = 'status,message,continent,country,countryCode,region,regionName,city,zip,lat,lon,timezone,isp,org,as,asname,reverse,mobile,proxy,hosting';
-      const resp = await axios.get(`http://ip-api.com/json/${encodeURIComponent(ip)}`, { params: { fields }, timeout: 10000 });
+      // ip is validated above — only digits, dots, colons (IPv4/IPv6 characters)
+      const resp = await axios.get(`http://ip-api.com/json/${ip}`, { params: { fields }, timeout: 10000 });
       const data = resp.data;
       if (data.status === 'fail') throw new Error(data.message || 'Geolocation failed.');
       const riskLevel = data.proxy || data.hosting ? 'high' : 'low';
@@ -368,8 +395,7 @@ async function runTool(tool_name, input) {
 
     // ── IP: reputation ───────────────────────────────────────────────────────
     case 'ip-reputation': {
-      const ip = String(input.ip || '').trim();
-      if (!ip) throw new Error('IP address required.');
+      const ip = validateIp(String(input.ip || '').trim());
       const abuseKey = process.env.ABUSEIPDB_API_KEY;
       if (!abuseKey) throw new Error('AbuseIPDB API key not configured. Set ABUSEIPDB_API_KEY in environment.');
       const resp = await axios.get('https://api.abuseipdb.com/api/v2/check', {

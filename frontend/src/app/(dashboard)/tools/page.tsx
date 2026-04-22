@@ -344,11 +344,13 @@ function ToolField({
 
 // ─── Result Summary ───────────────────────────────────────────────────────────
 
+const RESULT_META_KEYS = new Set(['tool', 'input', 'risk_level', 'disclaimer', 'timestamp'])
+
 function ResultSummary({ result }: { result: ToolResult }) {
   // Prefer the `result` sub-object when available; fall back to all top-level keys
   const dataEntries: [string, unknown][] = result.result && typeof result.result === 'object'
     ? Object.entries(result.result as Record<string, unknown>)
-    : Object.entries(result).filter(([k]) => !['tool', 'input', 'risk_level', 'disclaimer', 'timestamp'].includes(k))
+    : Object.entries(result).filter(([k]) => !RESULT_META_KEYS.has(k))
   const disclaimer = result.disclaimer != null ? String(result.disclaimer) : null
   const timestamp = result.timestamp != null ? String(result.timestamp) : null
 
