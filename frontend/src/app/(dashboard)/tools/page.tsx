@@ -345,11 +345,14 @@ function ToolField({
 // ─── Result Summary ───────────────────────────────────────────────────────────
 
 function ResultSummary({ result }: { result: ToolResult }) {
-  const entries = Object.entries(result).filter(([k]) => k !== 'disclaimer' && k !== 'timestamp')
+  // Prefer the `result` sub-object when available; fall back to all top-level keys
+  const dataEntries: [string, unknown][] = result.result && typeof result.result === 'object'
+    ? Object.entries(result.result as Record<string, unknown>)
+    : Object.entries(result).filter(([k]) => !['tool', 'input', 'risk_level', 'disclaimer', 'timestamp'].includes(k))
   const disclaimer = result.disclaimer != null ? String(result.disclaimer) : null
   const timestamp = result.timestamp != null ? String(result.timestamp) : null
 
-  if (entries.length === 0) {
+  if (dataEntries.length === 0) {
     return (
       <p className="px-3 py-3 text-xs text-slate-500">No data returned.</p>
     )
@@ -357,13 +360,23 @@ function ResultSummary({ result }: { result: ToolResult }) {
 
   return (
     <div className="divide-y divide-slate-800">
-      {entries.map(([key, val]) => (
+      {result.risk_level && (
+        <div className="px-3 py-2 flex items-start gap-3">
+          <span className="text-xs text-slate-500 font-medium w-28 shrink-0 mt-0.5 capitalize">risk level</span>
+          <span className="text-xs text-slate-200 break-all">{String(result.risk_level)}</span>
+        </div>
+      )}
+      {dataEntries.map(([key, val]) => (
         <div key={key} className="px-3 py-2 flex items-start gap-3">
           <span className="text-xs text-slate-500 font-medium w-28 shrink-0 mt-0.5 capitalize">
             {key.replace(/_/g, ' ')}
           </span>
           <span className="text-xs text-slate-200 break-all">
-            {typeof val === 'object' ? JSON.stringify(val) : String(val ?? '—')}
+            {Array.isArray(val)
+              ? val.length === 0 ? '—' : val.map((v) => (typeof v === 'object' ? JSON.stringify(v) : String(v))).join(', ')
+              : typeof val === 'object' && val !== null
+              ? JSON.stringify(val)
+              : String(val ?? '—')}
           </span>
         </div>
       ))}
