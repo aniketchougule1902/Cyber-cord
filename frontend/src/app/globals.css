@@ -2,25 +2,31 @@
 @tailwind components;
 @tailwind utilities;
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&display=swap');
+
 @layer base {
   :root {
-    --background: 10 10 15;
-    --foreground: 226 232 240;
-    --card: 15 15 25;
-    --card-foreground: 226 232 240;
-    --border: 30 41 59;
-    --input: 15 23 42;
-    --primary: 6 182 212;
-    --primary-foreground: 10 10 15;
-    --secondary: 30 41 59;
-    --secondary-foreground: 226 232 240;
-    --muted: 30 41 59;
-    --muted-foreground: 148 163 184;
-    --accent: 34 197 94;
-    --accent-foreground: 10 10 15;
+    --background: 248 250 252;
+    --foreground: 15 23 42;
+    --card: 255 255 255;
+    --card-foreground: 15 23 42;
+    --border: 226 232 240;
+    --input: 255 255 255;
+    --primary: 99 102 241;
+    --primary-foreground: 255 255 255;
+    --secondary: 241 245 249;
+    --secondary-foreground: 71 85 105;
+    --muted: 248 250 252;
+    --muted-foreground: 100 116 139;
+    --accent: 139 92 246;
+    --accent-foreground: 255 255 255;
     --destructive: 239 68 68;
     --destructive-foreground: 255 255 255;
-    --ring: 6 182 212;
+    --success: 34 197 94;
+    --warning: 245 158 11;
+    --ring: 99 102 241;
+    --sidebar: 255 255 255;
+    --sidebar-border: 241 245 249;
   }
 
   * {
@@ -29,60 +35,160 @@
   }
 
   html {
-    /* Smooth momentum scrolling on iOS */
     -webkit-overflow-scrolling: touch;
+    font-family: 'Inter', system-ui, sans-serif;
   }
 
   body {
     background-color: rgb(var(--background));
     color: rgb(var(--foreground));
     font-feature-settings: "rlig" 1, "calt" 1;
-    /* Prevent overscroll bounce on iOS */
     overscroll-behavior: none;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
   }
 
   ::-webkit-scrollbar {
-    width: 6px;
-    height: 6px;
+    width: 5px;
+    height: 5px;
   }
   ::-webkit-scrollbar-track {
-    background: rgb(15 15 25);
+    background: rgb(248 250 252);
   }
   ::-webkit-scrollbar-thumb {
-    background: rgb(30 41 59);
-    border-radius: 3px;
+    background: rgb(203 213 225);
+    border-radius: 10px;
   }
   ::-webkit-scrollbar-thumb:hover {
-    background: rgb(6 182 212 / 0.5);
+    background: rgb(148 163 184);
+  }
+
+  ::selection {
+    background-color: rgba(99, 102, 241, 0.15);
+    color: rgb(79 70 229);
   }
 }
 
 @layer components {
+  /* Cards */
+  .card {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-card;
+  }
+  .card-hover {
+    @apply bg-white border border-slate-200 rounded-2xl shadow-card hover:shadow-card-hover hover:border-slate-300 transition-all duration-200;
+  }
+
+  /* Inputs */
+  .input {
+    @apply bg-white border border-slate-200 rounded-xl px-3.5 py-2.5 text-slate-900 placeholder-slate-400
+      focus:outline-none focus:ring-2 focus:ring-brand-500/20 focus:border-brand-400
+      w-full text-sm transition-all duration-150 shadow-sm;
+  }
+
+  /* Buttons */
+  .btn-primary {
+    @apply bg-gradient-to-r from-brand-600 to-violet-600 hover:from-brand-500 hover:to-violet-500
+      text-white font-semibold px-4 py-2.5 rounded-xl
+      transition-all duration-150 disabled:opacity-50 disabled:cursor-not-allowed text-sm
+      shadow-sm hover:shadow-md active:scale-[0.98];
+  }
+  .btn-secondary {
+    @apply bg-white hover:bg-slate-50 active:bg-slate-100 text-slate-700 border border-slate-200 font-medium px-4 py-2.5 rounded-xl
+      transition-all duration-150 text-sm shadow-sm hover:shadow-card active:scale-[0.98];
+  }
+  .btn-ghost {
+    @apply bg-transparent hover:bg-slate-100 text-slate-600 font-medium px-3 py-2 rounded-lg
+      transition-colors duration-150 text-sm;
+  }
+  .btn-danger {
+    @apply bg-red-50 hover:bg-red-100 text-red-600 border border-red-200 font-medium px-4 py-2.5 rounded-xl
+      transition-all duration-150 text-sm;
+  }
+
+  /* Badge */
+  .badge {
+    @apply inline-flex items-center gap-1 text-xs font-medium px-2.5 py-0.5 rounded-full border;
+  }
+  .badge-low {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .badge-medium {
+    @apply bg-amber-50 text-amber-700 border-amber-200;
+  }
+  .badge-high {
+    @apply bg-orange-50 text-orange-700 border-orange-200;
+  }
+  .badge-critical {
+    @apply bg-red-50 text-red-700 border-red-200;
+  }
+  .badge-active {
+    @apply bg-emerald-50 text-emerald-700 border-emerald-200;
+  }
+  .badge-completed {
+    @apply bg-brand-50 text-brand-700 border-brand-200;
+  }
+  .badge-archived {
+    @apply bg-slate-100 text-slate-600 border-slate-200;
+  }
+
+  /* Legacy aliases so we don't need to change every file at once */
   .cyber-card {
-    @apply bg-slate-900 border border-slate-700 rounded-xl;
+    @apply card;
   }
   .cyber-input {
-    @apply bg-slate-900 border border-slate-700 rounded-lg px-3 py-2 text-slate-100 placeholder-slate-500
-      focus:outline-none focus:ring-2 focus:ring-cyan-500 focus:border-transparent
-      w-full text-sm;
+    @apply input;
   }
   .cyber-button-primary {
-    @apply bg-cyan-500 hover:bg-cyan-400 active:bg-cyan-600 text-slate-950 font-semibold px-4 py-2 rounded-lg
-      transition-colors duration-150 disabled:opacity-50 disabled:cursor-not-allowed text-sm;
+    @apply btn-primary;
   }
   .cyber-button-secondary {
-    @apply bg-slate-800 hover:bg-slate-700 active:bg-slate-700 text-slate-100 border border-slate-600 font-medium px-4 py-2 rounded-lg
-      transition-colors duration-150 text-sm;
+    @apply btn-secondary;
+  }
+
+  /* Nav link */
+  .nav-link {
+    @apply flex items-center gap-3 px-3 py-2.5 rounded-xl text-sm font-medium transition-all duration-150;
+  }
+  .nav-link-active {
+    @apply bg-brand-50 text-brand-700;
+  }
+  .nav-link-inactive {
+    @apply text-slate-500 hover:text-slate-900 hover:bg-slate-100;
+  }
+
+  /* Page header */
+  .page-header h1 {
+    @apply text-2xl font-bold text-slate-900;
+  }
+  .page-header p {
+    @apply text-slate-500 text-sm mt-1;
+  }
+
+  /* Section label */
+  .section-label {
+    @apply text-xs font-semibold text-slate-400 uppercase tracking-wider;
   }
 }
 
 @layer utilities {
-  /* Hide scrollbar but keep scroll functionality */
   .scrollbar-hide {
     -ms-overflow-style: none;
     scrollbar-width: none;
   }
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
+  }
+
+  .gradient-brand {
+    background: linear-gradient(135deg, #6366f1 0%, #8b5cf6 100%);
+  }
+
+  .gradient-text {
+    @apply bg-gradient-to-r from-brand-600 to-violet-600 bg-clip-text text-transparent;
+  }
+
+  .dot-grid {
+    background-image: radial-gradient(circle, rgb(203 213 225) 1px, transparent 1px);
+    background-size: 24px 24px;
   }
 }
