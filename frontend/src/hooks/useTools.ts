@@ -7,6 +7,7 @@ import type { Tool, ToolResult } from '@/types'
 
 const OFFLINE_DISCLAIMER =
   'Offline fallback mode: result generated in the browser because backend is unreachable.'
+const OFFLINE_FALLBACK_TOOLS = ['password-strength', 'email-headers', 'metadata-extract'] as const
 
 function getStrengthLabel(score: number): 'very_weak' | 'weak' | 'moderate' | 'strong' | 'very_strong' {
   if (score < 20) return 'very_weak'
@@ -14,6 +15,12 @@ function getStrengthLabel(score: number): 'very_weak' | 'weak' | 'moderate' | 's
   if (score < 60) return 'moderate'
   if (score < 80) return 'strong'
   return 'very_strong'
+}
+
+function getRiskLevelFromStrengthLabel(label: ReturnType<typeof getStrengthLabel>): ToolResult['risk_level'] {
+  if (label === 'very_weak' || label === 'weak') return 'high'
+  if (label === 'moderate') return 'medium'
+  return 'low'
 }
 
 function makeOfflineResult(
@@ -51,7 +58,8 @@ function runOfflineFallbackTool(
     if (hasUpper) charsetSize += 26
     if (hasDigits) charsetSize += 10
     if (hasSpecial) charsetSize += 32
-    const entropyBits = length > 0 ? Math.round(Math.log2(Math.max(charsetSize, 1)) * length * 100) / 100 : 0
+    const charsetEntropy = Math.log2(Math.max(charsetSize, 1))
+    const entropyBits = length > 0 ? Math.round(charsetEntropy * length * 100) / 100 : 0
     let strengthScore = 0
     strengthScore += Math.min(length * 3, 30)
     strengthScore += hasLower ? 10 : 0
@@ -61,7 +69,7 @@ function runOfflineFallbackTool(
     strengthScore += Math.min(Math.floor(entropyBits / 3), 20)
     strengthScore = Math.max(0, Math.min(100, strengthScore))
     const strengthLabel = getStrengthLabel(strengthScore)
-    const riskLevel = ['very_weak', 'weak'].includes(strengthLabel) ? 'high' : strengthLabel === 'moderate' ? 'medium' : 'low'
+    const riskLevel = getRiskLevelFromStrengthLabel(strengthLabel)
     return makeOfflineResult(
       toolName,
       '[password hidden]',
@@ -201,7 +209,7 @@ export function useToolRunner() {
             setResult(offlineResult)
             return offlineResult
           }
-          message = 'Cannot reach backend service. Offline fallback is currently available for: password-strength, email-headers, metadata-extract.'
+          message = `Cannot reach backend service. Offline fallback is currently available for: ${OFFLINE_FALLBACK_TOOLS.join(', ')}.`
         } else {
           message = err.message || message
         }
