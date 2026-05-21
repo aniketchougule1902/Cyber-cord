@@ -7,6 +7,9 @@ import type { Tool, ToolResult } from '@/types'
 
 const OFFLINE_DISCLAIMER =
   'Offline fallback mode: result generated in the browser because backend is unreachable.'
+const SPECIAL_CHARS_CHARSET_SIZE = 32
+const EMAIL_HEADER_LINE_RE = /^([A-Za-z0-9_-]+)\s*:\s*(.*)/
+// Keep this list in sync with runOfflineFallbackTool implementations.
 const OFFLINE_FALLBACK_TOOLS = ['password-strength', 'email-headers', 'metadata-extract'] as const
 
 function getStrengthLabel(score: number): 'very_weak' | 'weak' | 'moderate' | 'strong' | 'very_strong' {
@@ -57,7 +60,7 @@ function runOfflineFallbackTool(
     if (hasLower) charsetSize += 26
     if (hasUpper) charsetSize += 26
     if (hasDigits) charsetSize += 10
-    if (hasSpecial) charsetSize += 32
+    if (hasSpecial) charsetSize += SPECIAL_CHARS_CHARSET_SIZE
     const charsetEntropy = Math.log2(Math.max(charsetSize, 1))
     const entropyBits = length > 0 ? Math.round(charsetEntropy * length * 100) / 100 : 0
     let strengthScore = 0
@@ -99,7 +102,7 @@ function runOfflineFallbackTool(
       if (/^\s/.test(line) && currentKey) {
         headers[currentKey] += ` ${line.trim()}`
       } else {
-        const match = line.match(/^([A-Za-z0-9_-]+)\s*:\s*(.*)/)
+        const match = line.match(EMAIL_HEADER_LINE_RE)
         if (match) {
           currentKey = match[1].toLowerCase()
           headers[currentKey] = match[2].trim()
