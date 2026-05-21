@@ -86,11 +86,11 @@ app.post('/analyze', requireInternalKey, async (req, res, next) => {
     const response = await chat(messages);
     const parsed = tryParseJSON(response);
 
-    return res.json({
-      analysis: parsed,
-      model: process.env.OPENAI_MODEL,
-      timestamp: new Date().toISOString(),
-    });
+      return res.json({
+        analysis: parsed,
+        model: process.env.GEMINI_MODEL,
+        timestamp: new Date().toISOString(),
+      });
   } catch (err) {
     next(err);
   }
@@ -112,11 +112,11 @@ app.post('/summarize', requireInternalKey, async (req, res, next) => {
     const messages = buildSummarizePrompt(investigation, findings);
     const response = await chat(messages);
 
-    return res.json({
-      summary: response,
-      model: process.env.OPENAI_MODEL,
-      timestamp: new Date().toISOString(),
-    });
+      return res.json({
+        summary: response,
+        model: process.env.GEMINI_MODEL,
+        timestamp: new Date().toISOString(),
+      });
   } catch (err) {
     next(err);
   }
@@ -139,11 +139,11 @@ app.post('/recommend', requireInternalKey, async (req, res, next) => {
     const response = await chat(messages);
     const parsed = tryParseJSON(response);
 
-    return res.json({
-      recommendations: parsed,
-      model: process.env.OPENAI_MODEL,
-      timestamp: new Date().toISOString(),
-    });
+      return res.json({
+        recommendations: parsed,
+        model: process.env.GEMINI_MODEL,
+        timestamp: new Date().toISOString(),
+      });
   } catch (err) {
     next(err);
   }
@@ -180,7 +180,7 @@ app.use((err, _req, res, _next) => {
 const PORT = parseInt(process.env.PORT, 10) || 5001;
 app.listen(PORT, () => {
   logger.info(`CyberCord AI Engine listening on port ${PORT}`);
-  logger.info(`Model: ${process.env.OPENAI_MODEL || 'gpt-4-turbo-preview'}`);
+  logger.info(`Model: ${process.env.GEMINI_MODEL || 'gemini-1.5-pro'}`);
 });
 
 module.exports = app;

@@ -128,13 +128,13 @@ All environment variables live in a single `.env` file at the project root (copy
 | `ABUSEIPDB_API_KEY` | AbuseIPDB API key | Optional |
 | `ALLOWED_ORIGINS` | Comma-separated allowed origins | ✅ |
 
-### AI Engine (`OPENAI_API_KEY`, `OPENAI_MODEL`, …)
+### AI Engine (`GEMINI_API_KEY`, `GEMINI_MODEL`, …)
 
 | Variable | Description | Required |
 |---|---|---|
-| `OPENAI_API_KEY` | OpenAI API key | ✅ |
-| `OPENAI_BASE_URL` | API base URL (swap for local LLM) | ✅ |
-| `OPENAI_MODEL` | Model name | ✅ |
+| `GEMINI_API_KEY` | Gemini API key | ✅ |
+| `GEMINI_BASE_URL` | Gemini API base URL | ✅ |
+| `GEMINI_MODEL` | Gemini model name | ✅ |
 | `BACKEND_API_KEY` | Internal API key for auth | ✅ |
 
 ### Frontend (`NEXT_PUBLIC_*` variables)
@@ -170,7 +170,7 @@ All environment variables live in a single `.env` file at the project root (copy
 - 16 real tools across 7 categories
 
 ### AI Engine
-- OpenAI-compatible (swap `OPENAI_BASE_URL` for any local LLM)
+- Gemini API-compatible setup
 - Endpoints: `/analyze`, `/summarize`, `/recommend`
 - Cybersecurity-focused prompt engineering
 
