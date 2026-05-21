@@ -8,6 +8,14 @@ import type { Tool, ToolResult } from '@/types'
 const OFFLINE_DISCLAIMER =
   'Offline fallback mode: result generated in the browser because backend is unreachable.'
 
+function getStrengthLabel(score: number): 'very_weak' | 'weak' | 'moderate' | 'strong' | 'very_strong' {
+  if (score < 20) return 'very_weak'
+  if (score < 40) return 'weak'
+  if (score < 60) return 'moderate'
+  if (score < 80) return 'strong'
+  return 'very_strong'
+}
+
 function makeOfflineResult(
   toolName: string,
   inputLabel: string,
@@ -52,7 +60,7 @@ function runOfflineFallbackTool(
     strengthScore += hasSpecial ? 20 : 0
     strengthScore += Math.min(Math.floor(entropyBits / 3), 20)
     strengthScore = Math.max(0, Math.min(100, strengthScore))
-    const strengthLabel = strengthScore < 20 ? 'very_weak' : strengthScore < 40 ? 'weak' : strengthScore < 60 ? 'moderate' : strengthScore < 80 ? 'strong' : 'very_strong'
+    const strengthLabel = getStrengthLabel(strengthScore)
     const riskLevel = ['very_weak', 'weak'].includes(strengthLabel) ? 'high' : strengthLabel === 'moderate' ? 'medium' : 'low'
     return makeOfflineResult(
       toolName,
@@ -193,7 +201,7 @@ export function useToolRunner() {
             setResult(offlineResult)
             return offlineResult
           }
-          message = 'Cannot reach backend service. Limited offline fallback is available only for a few tools.'
+          message = 'Cannot reach backend service. Offline fallback is currently available for: password-strength, email-headers, metadata-extract.'
         } else {
           message = err.message || message
         }
