@@ -6,26 +6,20 @@
 CREATE EXTENSION IF NOT EXISTS "pgcrypto";
 CREATE EXTENSION IF NOT EXISTS "uuid-ossp";
 
+-- Reset existing objects so this script can fully recreate the schema
+DROP TABLE IF EXISTS audit_logs CASCADE;
+DROP TABLE IF EXISTS api_keys CASCADE;
+DROP TABLE IF EXISTS tool_usage_logs CASCADE;
+DROP TABLE IF EXISTS investigation_findings CASCADE;
+DROP TABLE IF EXISTS investigations CASCADE;
+DROP TABLE IF EXISTS users CASCADE;
+
+DROP FUNCTION IF EXISTS is_admin();
+DROP FUNCTION IF EXISTS update_updated_at_column();
+
 -- ============================================================
 -- HELPER FUNCTIONS
 -- ============================================================
-
--- Returns true if the currently authenticated user has role = 'admin'
-CREATE OR REPLACE FUNCTION is_admin()
-RETURNS boolean
-LANGUAGE sql
-STABLE
-SECURITY DEFINER
-SET search_path = public
-AS $$
-  SELECT EXISTS (
-    SELECT 1
-    FROM users
-    WHERE id = auth.uid()::uuid
-      AND role = 'admin'
-      AND is_active = true
-  );
-$$;
 
 -- Sets updated_at to now() on UPDATE
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -56,6 +50,23 @@ CREATE TABLE IF NOT EXISTS users (
   created_at      timestamptz NOT NULL DEFAULT NOW(),
   updated_at      timestamptz NOT NULL DEFAULT NOW()
 );
+
+-- Returns true if the currently authenticated user has role = 'admin'
+CREATE OR REPLACE FUNCTION is_admin()
+RETURNS boolean
+LANGUAGE sql
+STABLE
+SECURITY DEFINER
+SET search_path = public
+AS $$
+  SELECT EXISTS (
+    SELECT 1
+    FROM users
+    WHERE id = auth.uid()::uuid
+      AND role = 'admin'
+      AND is_active = true
+  );
+$$;
 
 -- ----------------------------------------------------------
 -- investigations

@@ -64,7 +64,7 @@ services:
       - cybercord
 
   # ----------------------------------------------------------------
-  # AI Engine (OpenAI-compatible)
+  # AI Engine (Gemini API)
   # ----------------------------------------------------------------
   ai-engine:
     build:
@@ -74,9 +74,9 @@ services:
       - "5001:5001"
     environment:
       - PORT=5001
-      - OPENAI_API_KEY=${OPENAI_API_KEY}
-      - OPENAI_BASE_URL=${OPENAI_BASE_URL:-https://api.openai.com/v1}
-      - OPENAI_MODEL=${OPENAI_MODEL:-gpt-4-turbo-preview}
+      - GEMINI_API_KEY=${GEMINI_API_KEY}
+      - GEMINI_BASE_URL=${GEMINI_BASE_URL:-https://generativelanguage.googleapis.com/v1beta}
+      - GEMINI_MODEL=${GEMINI_MODEL:-gemini-1.5-pro}
       - BACKEND_API_KEY=${BACKEND_API_KEY}
     networks:
       - cybercord

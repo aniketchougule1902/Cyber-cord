@@ -41,7 +41,7 @@ Capabilities:
 
 Use:
 
-- OpenAI / local LLM / API-based architecture (keep modular)
+- Gemini / local LLM / API-based architecture (keep modular)
 
 ---
 
@@ -69,8 +69,8 @@ Database:
 
 Use these values (store in ENV, DO NOT expose in frontend):
 
-SUPABASE_URL=https://valskfspcyfrnllojahy.supabase.co
-SUPABASE_ANON_KEY= eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InZhbHNrZnNwY3lmcm5sbG9qYWh5Iiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzY1ODA1ODIsImV4cCI6MjA5MjE1NjU4Mn0.dFD9Srkao8drf4VgIOP1VuD67KhaOEUvYO_d_7aBOuM
+SUPABASE_URL=https://dkpglqguennezbilrafg.supabase.co
+SUPABASE_ANON_KEY= eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6ImRrcGdscWd1ZW5uZXpiaWxyYWZnIiwicm9sZSI6ImFub24iLCJpYXQiOjE3NzkzMDc3ODksImV4cCI6MjA5NDg4Mzc4OX0.mZxv5qMqJ-Pe65SmRM4lO5CYOosb20J01YpoR1NT0c4
 
 ---
 
