@@ -1,8 +1,29 @@
 import axios from 'axios'
 import { supabase } from './supabase'
 
+function trimTrailingSlash(value: string): string {
+  return value.replace(/\/+$/, '')
+}
+
+function resolveBackendBaseUrl(): string {
+  const configured = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
+  if (configured) {
+    return trimTrailingSlash(configured)
+  }
+
+  if (typeof window !== 'undefined') {
+    const { origin, hostname } = window.location
+    if (hostname === 'localhost' || hostname === '127.0.0.1') {
+      return 'http://localhost:4000'
+    }
+    return `${origin}/_/backend`
+  }
+
+  return 'http://localhost:4000'
+}
+
 const api = axios.create({
-  baseURL: process.env.NEXT_PUBLIC_BACKEND_URL || 'http://localhost:4000',
+  baseURL: resolveBackendBaseUrl(),
   timeout: 30000,
   headers: { 'Content-Type': 'application/json' },
 })

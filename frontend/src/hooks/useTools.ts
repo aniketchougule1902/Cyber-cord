@@ -1,5 +1,6 @@
 'use client'
 import { useState, useEffect } from 'react'
+import axios from 'axios'
 import { toolsApi } from '@/lib/api'
 import { STATIC_TOOLS } from '@/lib/tools-data'
 import type { Tool, ToolResult } from '@/types'
@@ -40,7 +41,25 @@ export function useToolRunner() {
       setResult(res.data)
       return res.data
     } catch (err: unknown) {
-      const message = err instanceof Error ? err.message : 'Tool execution failed'
+      let message = 'Tool execution failed'
+      if (axios.isAxiosError(err)) {
+        const serverMessage =
+          typeof err.response?.data?.error === 'string'
+            ? err.response.data.error
+            : typeof err.response?.data?.message === 'string'
+              ? err.response.data.message
+              : null
+        if (serverMessage) {
+          message = serverMessage
+        } else if (!err.response) {
+          message =
+            'Cannot reach backend service. Check NEXT_PUBLIC_BACKEND_URL (or same-project backend route) and try again.'
+        } else {
+          message = err.message || message
+        }
+      } else if (err instanceof Error) {
+        message = err.message
+      }
       setError(message)
       return null
     } finally {
