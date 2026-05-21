@@ -7,6 +7,7 @@ import type { Tool, ToolResult } from '@/types'
 
 const OFFLINE_DISCLAIMER =
   'Offline fallback mode: result generated in the browser because backend is unreachable.'
+// Approximate printable symbol set commonly accepted in password policies.
 const SPECIAL_CHARS_CHARSET_SIZE = 32
 const EMAIL_HEADER_LINE_RE = /^([A-Za-z0-9_-]+)\s*:\s*(.*)/
 // Keep this list in sync with runOfflineFallbackTool implementations.
@@ -64,6 +65,8 @@ function runOfflineFallbackTool(
     const charsetEntropy = Math.log2(Math.max(charsetSize, 1))
     const entropyBits = length > 0 ? Math.round(charsetEntropy * length * 100) / 100 : 0
     let strengthScore = 0
+    // Heuristic scoring aligned with backend defaults for offline parity.
+    // Length contributes up to 30, character classes add up to 50, entropy adds up to 20.
     strengthScore += Math.min(length * 3, 30)
     strengthScore += hasLower ? 10 : 0
     strengthScore += hasUpper ? 10 : 0
@@ -151,7 +154,7 @@ function runOfflineFallbackTool(
         host: parsed.host,
         pathname: parsed.pathname,
         query_params_count: parsed.searchParams.size,
-        note: 'Offline mode returns URL-level metadata only. File/network metadata requires backend access.',
+        note: 'Offline mode returns URL-level metadata only. File and network metadata requires backend access.',
       },
       'low'
     )
