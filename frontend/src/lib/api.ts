@@ -1,14 +1,14 @@
 import axios from 'axios'
 import { supabase } from './supabase'
 
-function trimTrailingSlash(value: string): string {
+function trimTrailingSlashes(value: string): string {
   return value.replace(/\/+$/, '')
 }
 
 function resolveBackendBaseUrl(): string {
   const configured = process.env.NEXT_PUBLIC_BACKEND_URL?.trim()
   if (configured) {
-    return trimTrailingSlash(configured)
+    return trimTrailingSlashes(configured)
   }
 
   if (typeof window !== 'undefined') {

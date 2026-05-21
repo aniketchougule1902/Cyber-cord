@@ -52,7 +52,7 @@ export function useToolRunner() {
         if (serverMessage) {
           message = serverMessage
         } else if (!err.response) {
-          message = 'Cannot reach backend service. Check NEXT_PUBLIC_BACKEND_URL (or same-project backend route) and try again.'
+          message = 'Cannot reach backend service. Please check your network connection or contact support.'
         } else {
           message = err.message || message
         }
